@@ -1,0 +1,114 @@
+{
+  "name": "Example: Add Inline Keyboard After Image Generation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "example-0000-0000-0000-000000000000",
+      "name": "When Image Generated",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "จากขั้นตอนก่อนหน้า: Fal.AI generate รูป\nข้อมูลที่ได้:\n- fal_image_url: URL รูปที่ generate\n- chat_id: Telegram Chat ID\n- prompt: คำสั่งที่ใช้"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Prepare data for inline keyboard\nconst imageUrl = $input.first().json.fal_image_url || $input.first().json.image_url;\nconst chatId = $input.first().json.chat_id;\n\n// Build form URL with parameters\nconst n8nDomain = \"https://your-n8n-domain.com\"; // เปลี่ยนเป็น domain จริง\nconst formUrl = `${n8nDomain}/webhook/text-overlay-form?image_url=${encodeURIComponent(imageUrl)}&chat_id=${chatId}`;\n\n// Build inline keyboard\nconst inlineKeyboard = {\n  inline_keyboard: [\n    [\n      {\n        text: \"📝 ใส่ตัวอักษร\",\n        url: formUrl\n      }\n    ],\n    [\n      {\n        text: \"🎬 สร้างวิดีโอ\",\n        callback_data: \"create_video\"\n      },\n      {\n        text: \"📤 โพสเลย\",\n        callback_data: \"post_now\"\n      }\n    ]\n  ]\n};\n\nreturn [{\n  chat_id: chatId,\n  photo: imageUrl,\n  caption: \"✅ สร้างรูปภาพเสร็จแล้ว!\\n\\nคุณต้องการทำอะไรต่อ?\",\n  reply_markup: JSON.stringify(inlineKeyboard)\n}];"
+      },
+      "id": "example-1111-1111-1111-111111111111",
+      "name": "Prepare Inline Keyboard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "notes": "สร้าง inline keyboard พร้อม URL ของ form"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendPhoto",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $json.chat_id }}"
+            },
+            {
+              "name": "photo",
+              "value": "={{ $json.photo }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "reply_markup",
+              "value": "={{ $json.reply_markup }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "example-2222-2222-2222-222222222222",
+      "name": "Send Photo with Inline Keyboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "notes": "ส่งรูปพร้อม inline keyboard ไปที่ Telegram"
+    },
+    {
+      "parameters": {},
+      "id": "example-3333-3333-3333-333333333333",
+      "name": "User Clicks Button",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "notes": "เมื่อ user กดปุ่ม \"ใส่ตัวอักษร\"\nจะเปิด browser ไปที่ HTML Form\n\nจากนั้น:\n1. User ปรับแต่งข้อความ\n2. กด \"สร้างเลย\"\n3. Workflow text_overlay_interactive.json\n   จะรับข้อมูล → สร้าง Cloudinary URL\n   → ส่งกลับ Telegram อัตโนมัติ"
+    }
+  ],
+  "connections": {
+    "When Image Generated": {
+      "main": [
+        [
+          {
+            "node": "Prepare Inline Keyboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Inline Keyboard": {
+      "main": [
+        [
+          {
+            "node": "Send Photo with Inline Keyboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Photo with Inline Keyboard": {
+      "main": [
+        [
+          {
+            "node": "User Clicks Button",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-01-08T00:00:00.000Z",
+  "versionId": "1"
+}
