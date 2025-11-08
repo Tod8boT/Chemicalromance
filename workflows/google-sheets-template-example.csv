@@ -1,0 +1,29 @@
+# SHEET 1: Competitor_Data
+# Copy output จาก 2 workflows ที่มีอยู่แล้วมาใส่ที่นี่
+
+page_name,page_id,page_likes,followers,display_format,cta_type,cta_text,ad_body_text,likes,shares,comments,viewsCount,collation_count,ad_archive_id,start_date,end_date,is_active
+ไอศครีมครีโม,694634120405666,2480,2500,VIDEO,LIKE_PAGE,Like Page,สนใจลงตู้ไอศกรีมครีโมมีทั้งแบบแท่งและแบบตัก มีตู้แช่ให้ยืมใช้โดยไม่มีค่าใช้จ่าย,150,45,23,3500,1,1774534643171041,2025-09-27,2025-11-03,true
+
+# SHEET 2: CREMO_Templates
+# Copy จาก 🎨 CREMO Template Master CSV
+
+Template_Name,AI_Instructions,Category,Primary_Message,Prompt_Template,Status
+Success Story,A photorealistic image capturing a real success story moment in Thailand,Photography,Real people achieving business success with CREMO franchise,A photorealistic image of real location in {region} Thailand showing {subjects} {actions} in {environments} with {lighting} lighting,Active
+Lifestyle Photography,Modern lifestyle photography showcasing ice cream as part of daily life,Photography,Ice cream as a natural part of modern Thai lifestyle,A photorealistic image of real location in region Thailand showing subjects actions in environments with lighting lighting,Active
+
+# SHEET 3: Market_Intelligence
+# Copy จาก 📈 CREMO Market Intelligence CSV
+
+Analysis_ID,Data_Type,Key_Insights,Source,Status,Summary
+MI-001,Trends Analysis,"Hook แบบคำถาม + ปัญหา เริ่มต้นได้ผลดี, ตัวเลขเงินทุนต้องใส่เสมอ",Manual Research,Reviewed,วิเคราะห์ text hooks ที่มีประสิทธิภาพในตลาดไอศกรีม
+MI-002,Regional Preferences,"ภาคใต้: Lifestyle + Golden Hour = +45% engagement, ภาคอีสาน: Success Stories = +38% CTR",Social Media,New,การวิเคราะห์ engagement ตามภูมิภาค
+
+# SHEET 4: Analysis_Results
+# Workflow จะเขียนผลลัพธ์ลงที่นี่
+
+timestamp,performance_gap,key_insights,template_recommendations,regional_focus,ab_test_count
+
+# SHEET 5: AB_Test_Queue
+# Workflow จะเขียน A/B test ideas ลงที่นี่
+
+timestamp,test_id,template,variation,image_prompt,ad_copy,cta,expected_impact,status
