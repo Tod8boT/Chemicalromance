@@ -1,0 +1,173 @@
+{
+  "name": "text_overlay_processor",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "image_url",
+              "type": "string"
+            },
+            {
+              "name": "text_content",
+              "type": "string"
+            },
+            {
+              "name": "template_id",
+              "type": "string"
+            },
+            {
+              "name": "sheet_id",
+              "type": "string"
+            },
+            {
+              "name": "cloud_name",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "trigger-1",
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.sheet_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "text_overlay_config",
+          "mode": "name"
+        },
+        "options": {
+          "range": "A:R"
+        }
+      },
+      "id": "sheets-1",
+      "name": "Load_Text_Config",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [460, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// ===== Cloudinary URL Builder for n8n Code Node =====\n// Purpose: Build text overlay transformation URLs for Cloudinary\n\n// === INPUT VARIABLES ===\nconst imageUrl = $input.first().json.image_url;\nconst textContent = $input.first().json.text_content;\nconst templateId = $input.first().json.template_id;\nconst cloudName = $input.first().json.cloud_name || \"dz3cmaxnc\";\n\n// Get all text configs from Google Sheets (from previous node)\nconst allConfigs = $input.all();\n\n// === HELPER FUNCTIONS ===\n\nfunction findConfig(templateId, configs) {\n  // Find matching config from Google Sheets data\n  // configs is array of items from Load_Text_Config node\n  for (const item of configs) {\n    if (item.json.template_id === templateId) {\n      return item.json;\n    }\n  }\n  return null;\n}\n\nfunction encodeThaiText(text) {\n  // Properly encode Thai text for URL\n  return encodeURIComponent(text);\n}\n\nfunction buildTextLayer(text, config) {\n  // Build complete text layer transformation string\n  const encodedText = encodeThaiText(text);\n  const fontFamily = config.font_family || \"Mitr\";\n  const fontSize = config.font_size || 80;\n  const fontWeight = \"bold\";\n  \n  // Base text layer: l_text:Font_Size_Weight:EncodedText\n  let layer = `l_text:${fontFamily}_${fontSize}_${fontWeight}:${encodedText}`;\n  \n  // Add color\n  if (config.color) {\n    const colorHex = config.color.replace('#', '');\n    layer += `,co_rgb:${colorHex}`;\n  }\n  \n  // Add stroke/outline\n  if (config.stroke_enabled && config.stroke_width > 0) {\n    const strokeColor = config.stroke_color ? config.stroke_color.replace('#', '') : '000000';\n    layer += `,bo_${config.stroke_width}px_solid_rgb:${strokeColor}`;\n  }\n  \n  // Add shadow (using effect)\n  if (config.shadow_enabled && config.shadow_strength > 0) {\n    layer += `,e_shadow:${config.shadow_strength}`;\n  }\n  \n  // Add arc (text curve)\n  if (config.arc && config.arc !== 0) {\n    layer += `,a_${config.arc}`;\n  }\n  \n  // Add background\n  if (config.bg_enabled && config.bg_color) {\n    const bgColor = config.bg_color.replace('#', '');\n    const bgOpacity = config.bg_opacity || 80;\n    layer += `,b_rgb:${bgColor},o_${bgOpacity}`;\n  }\n  \n  // Apply layer with position\n  const position = config.position || \"north\";\n  const xOffset = config.x_offset || 0;\n  const yOffset = config.y_offset || 0;\n  \n  layer += `,fl_layer_apply,g_${position}`;\n  \n  if (xOffset !== 0) {\n    layer += `,x_${xOffset}`;\n  }\n  if (yOffset !== 0) {\n    layer += `,y_${yOffset}`;\n  }\n  \n  return layer;\n}\n\nfunction extractImageId(url) {\n  // Extract image ID or public_id from Fal.AI URL\n  // For now, we'll use the full URL (fetch method)\n  return url;\n}\n\nfunction buildCloudinaryURL(cloudName, imageSource, transformations) {\n  // Build final Cloudinary URL\n  // Using fetch method to pull from external URL\n  const baseUrl = `https://res.cloudinary.com/${cloudName}/image/upload`;\n  \n  // Base transformations\n  const baseTrans = \"w_1080,h_1080,c_fill\";\n  \n  // Fetch the external image\n  const fetchUrl = `${baseUrl}/${baseTrans}/${transformations}/f_auto/${encodeURIComponent(imageSource)}`;\n  \n  return fetchUrl;\n}\n\n// === MAIN LOGIC ===\n\ntry {\n  // 1. Find config for this template\n  const config = findConfig(templateId, allConfigs);\n  \n  if (!config) {\n    throw new Error(`Config not found for template: ${templateId}`);\n  }\n  \n  // 2. Build text layer transformation\n  const textLayer = buildTextLayer(textContent, config);\n  \n  // 3. Build complete Cloudinary URL\n  const cloudinaryUrl = buildCloudinaryURL(cloudName, imageUrl, textLayer);\n  \n  // 4. Build preview URL (smaller size for Telegram)\n  const baseTrans = \"w_400,h_400,c_fill\";\n  const previewUrl = `https://res.cloudinary.com/${cloudName}/image/upload/${baseTrans}/${textLayer}/f_auto/${encodeURIComponent(imageUrl)}`;\n  \n  // 5. Return result\n  return [{\n    success: true,\n    cloudinary_url: cloudinaryUrl,\n    preview_url: previewUrl,\n    transformation_breakdown: {\n      base: \"w_1080,h_1080,c_fill\",\n      text_layer: textLayer,\n      image_source: imageUrl\n    },\n    config_used: {\n      template_id: config.template_id,\n      font_size: config.font_size,\n      font_family: config.font_family,\n      position: config.position,\n      color: config.color\n    }\n  }];\n  \n} catch (error) {\n  return [{\n    success: false,\n    error: error.message,\n    stack: error.stack,\n    input_received: {\n      image_url: imageUrl,\n      text_content: textContent,\n      template_id: templateId,\n      cloud_name: cloudName,\n      configs_count: allConfigs.length\n    }\n  }];\n}"
+      },
+      "id": "code-1",
+      "name": "Build_Cloudinary_URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.cloudinary_url }}",
+        "options": {
+          "timeout": 30000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          }
+        }
+      },
+      "id": "http-1",
+      "name": "Apply_Text_Overlay",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Prepare return data\nconst buildResult = $input.first().json;\nconst previousData = $('Start').first().json;\n\nreturn [{\n  status: 'completed',\n  final_image_url: buildResult.cloudinary_url,\n  preview_url: buildResult.preview_url,\n  text_applied: previousData.text_content,\n  template_used: previousData.template_id,\n  transformation_details: buildResult.transformation_breakdown,\n  original_image_url: previousData.image_url\n}];"
+      },
+      "id": "code-2",
+      "name": "Prepare_Return",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Load_Text_Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load_Text_Config": {
+      "main": [
+        [
+          {
+            "node": "Build_Cloudinary_URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build_Cloudinary_URL": {
+      "main": [
+        [
+          {
+            "node": "Apply_Text_Overlay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply_Text_Overlay": {
+      "main": [
+        [
+          {
+            "node": "Prepare_Return",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "text-overlay-processor-v1"
+  },
+  "tags": [
+    {
+      "name": "cloudinary",
+      "createdAt": "2025-11-08T00:00:00.000Z",
+      "updatedAt": "2025-11-08T00:00:00.000Z"
+    },
+    {
+      "name": "text-overlay",
+      "createdAt": "2025-11-08T00:00:00.000Z",
+      "updatedAt": "2025-11-08T00:00:00.000Z"
+    }
+  ]
+}
