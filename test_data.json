@@ -1,0 +1,222 @@
+{
+  "test_case_1": {
+    "name": "Flash Sale - Thai Text",
+    "description": "Test flash sale template with Thai promotional text",
+    "input": {
+      "image_url": "https://fal.ai/files/zebra/test-image-123.jpg",
+      "text_content": "ลด 70% วันนี้เท่านั้น!",
+      "template_id": "flash_sale",
+      "cloud_name": "dz3cmaxnc",
+      "sheet_id": "1EtZMb8HEdB-_fl7NJa1fv2y26S3zJZbpxgNUoQr5yrE"
+    },
+    "expected_config": {
+      "template_id": "flash_sale",
+      "position": "north",
+      "font_size": 90,
+      "font_family": "Mitr",
+      "color": "#FF0000",
+      "stroke_enabled": true,
+      "stroke_color": "#FFD700",
+      "stroke_width": 8,
+      "shadow_enabled": true,
+      "shadow_strength": 70
+    },
+    "expected_output_contains": [
+      "res.cloudinary.com",
+      "w_1080,h_1080",
+      "l_text:Mitr_90",
+      "co_rgb:FF0000",
+      "bo_8px_solid_rgb:FFD700",
+      "e_shadow:70",
+      "fl_layer_apply,g_north"
+    ],
+    "expected_structure": {
+      "success": true,
+      "cloudinary_url": "string (should contain transformation)",
+      "preview_url": "string (should contain w_400,h_400)",
+      "transformation_breakdown": "object",
+      "config_used": "object"
+    }
+  },
+  "test_case_2": {
+    "name": "Success Story - English Text",
+    "description": "Test success story template with English text",
+    "input": {
+      "image_url": "https://fal.ai/files/test456.jpg",
+      "text_content": "Amazing Results!",
+      "template_id": "success_story",
+      "cloud_name": "dz3cmaxnc",
+      "sheet_id": "1EtZMb8HEdB-_fl7NJa1fv2y26S3zJZbpxgNUoQr5yrE"
+    },
+    "expected_config": {
+      "template_id": "success_story",
+      "position": "north",
+      "font_size": 80,
+      "font_family": "Mitr",
+      "color": "#FFD700",
+      "stroke_enabled": true,
+      "stroke_color": "#3B5998",
+      "stroke_width": 5
+    },
+    "expected_output_contains": [
+      "l_text:Mitr_80",
+      "co_rgb:FFD700",
+      "bo_5px_solid_rgb:3B5998",
+      "g_north"
+    ]
+  },
+  "test_case_3": {
+    "name": "Community Moments - Thai Text with Arc",
+    "description": "Test community moments template with curved text",
+    "input": {
+      "image_url": "https://fal.ai/files/test789.jpg",
+      "text_content": "เราเป็นครอบครัวเดียวกัน",
+      "template_id": "community_moments",
+      "cloud_name": "dz3cmaxnc",
+      "sheet_id": "1EtZMb8HEdB-_fl7NJa1fv2y26S3zJZbpxgNUoQr5yrE"
+    },
+    "expected_config": {
+      "template_id": "community_moments",
+      "position": "center",
+      "font_size": 70,
+      "font_family": "Sarabun",
+      "color": "#FFFFFF",
+      "arc": -15,
+      "bg_enabled": true,
+      "bg_color": "#000000",
+      "bg_opacity": 50
+    },
+    "expected_output_contains": [
+      "l_text:Sarabun_70",
+      "co_rgb:FFFFFF",
+      "a_-15",
+      "b_rgb:000000",
+      "o_50",
+      "g_center"
+    ]
+  },
+  "test_case_4": {
+    "name": "Error Case - Invalid Template",
+    "description": "Test error handling for non-existent template",
+    "input": {
+      "image_url": "https://fal.ai/files/test999.jpg",
+      "text_content": "Test Error",
+      "template_id": "invalid_template_id_xyz",
+      "cloud_name": "dz3cmaxnc",
+      "sheet_id": "1EtZMb8HEdB-_fl7NJa1fv2y26S3zJZbpxgNUoQr5yrE"
+    },
+    "expected_error": true,
+    "expected_error_message": "Config not found",
+    "expected_structure": {
+      "success": false,
+      "error": "string",
+      "input_received": "object"
+    }
+  },
+  "test_case_5": {
+    "name": "Product Demo - Multiple Effects",
+    "description": "Test template with stroke, shadow, and background",
+    "input": {
+      "image_url": "https://fal.ai/files/product-demo.jpg",
+      "text_content": "ผลิตภัณฑ์คุณภาพสูง",
+      "template_id": "product_demonstration",
+      "cloud_name": "dz3cmaxnc",
+      "sheet_id": "1EtZMb8HEdB-_fl7NJa1fv2y26S3zJZbpxgNUoQr5yrE"
+    },
+    "expected_config": {
+      "template_id": "product_demonstration",
+      "position": "south",
+      "font_size": 85,
+      "font_family": "Mitr",
+      "color": "#2C3E50",
+      "stroke_enabled": true,
+      "stroke_color": "#ECF0F1",
+      "stroke_width": 6,
+      "shadow_enabled": true,
+      "shadow_strength": 60,
+      "bg_enabled": true,
+      "bg_color": "#FFFFFF",
+      "bg_opacity": 75,
+      "max_width": 900,
+      "y_offset": -50
+    },
+    "expected_output_contains": [
+      "l_text:Mitr_85",
+      "co_rgb:2C3E50",
+      "bo_6px_solid_rgb:ECF0F1",
+      "e_shadow:60",
+      "b_rgb:FFFFFF",
+      "o_75",
+      "w_900",
+      "g_south",
+      "y_-50"
+    ]
+  },
+  "sample_google_sheets_data": {
+    "description": "Sample data structure from text_overlay_config sheet",
+    "rows": [
+      {
+        "template_id": "flash_sale",
+        "position": "north",
+        "font_size": 90,
+        "font_family": "Mitr",
+        "color": "#FF0000",
+        "stroke_enabled": true,
+        "stroke_color": "#FFD700",
+        "stroke_width": 8,
+        "shadow_enabled": true,
+        "shadow_strength": 70,
+        "arc": -15,
+        "bg_enabled": true,
+        "bg_color": "#FFD700",
+        "bg_opacity": 85,
+        "x_offset": 0,
+        "y_offset": 30,
+        "max_width": 950
+      },
+      {
+        "template_id": "success_story",
+        "position": "north",
+        "font_size": 80,
+        "font_family": "Mitr",
+        "color": "#FFD700",
+        "stroke_enabled": true,
+        "stroke_color": "#3B5998",
+        "stroke_width": 5,
+        "shadow_enabled": true,
+        "shadow_strength": 50,
+        "arc": 0,
+        "bg_enabled": false,
+        "bg_color": "#000000",
+        "bg_opacity": 80,
+        "x_offset": 0,
+        "y_offset": 50,
+        "max_width": 800
+      },
+      {
+        "template_id": "community_moments",
+        "position": "center",
+        "font_size": 70,
+        "font_family": "Sarabun",
+        "color": "#FFFFFF",
+        "stroke_enabled": true,
+        "stroke_color": "#E74C3C",
+        "stroke_width": 4,
+        "shadow_enabled": true,
+        "shadow_strength": 40,
+        "arc": -10,
+        "bg_enabled": true,
+        "bg_color": "#000000",
+        "bg_opacity": 50,
+        "x_offset": 0,
+        "y_offset": 0,
+        "max_width": 850
+      }
+    ]
+  },
+  "curl_test_commands": {
+    "description": "Example curl commands to test Cloudinary URLs",
+    "test_flash_sale_url": "curl -I 'https://res.cloudinary.com/dz3cmaxnc/image/upload/w_1080,h_1080,c_fill/l_text:Mitr_90_bold:%E0%B8%A5%E0%B8%94%2070%25,co_rgb:FF0000,bo_8px_solid_rgb:FFD700,e_shadow:70,fl_layer_apply,g_north,y_30/f_auto/https%3A%2F%2Ffal.ai%2Ffiles%2Ftest.jpg'",
+    "test_preview_url": "curl -I 'https://res.cloudinary.com/dz3cmaxnc/image/upload/w_400,h_400,c_fill/l_text:Mitr_80_bold:Test,co_rgb:FFD700/f_auto/https%3A%2F%2Ffal.ai%2Ffiles%2Ftest.jpg'"
+  }
+}
