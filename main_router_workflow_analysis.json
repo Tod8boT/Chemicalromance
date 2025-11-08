@@ -1,0 +1,48 @@
+{
+  "workflow": {
+    "id": "QvgQdZ81AemlcpxE",
+    "name": "telegram_workflow", 
+    "status": "INACTIVE",
+    "executeWorkflow_nodes": [
+      {
+        "id": "947d2bb6-e0e9-4d52-8431-63592ab74fdf",
+        "name": "Call create_image_no_templete",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "position": [960, -80],
+        "connection": "Check templete Approval (Yes/No) → FALSE branch"
+      },
+      {
+        "id": "4abb8c4f-8750-40b2-8e33-60121fa9b41e", 
+        "name": "Call create_image_with_templete",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "position": [960, -256],
+        "connection": "Check templete Approval (Yes/No) → TRUE branch"
+      }
+    ],
+    "telegram_send_nodes": [
+      {
+        "id": "c1c0f2d1-ecde-4bf2-98aa-5a63bf50b99d",
+        "name": "image",
+        "type": "n8n-nodes-base.telegram",
+        "position": [-368, 256],
+        "note": "Early in workflow - sends confirmation messages"
+      },
+      {
+        "id": "9142061c-7577-4cee-9f99-aca71a38c816",
+        "name": "text", 
+        "type": "n8n-nodes-base.telegram",
+        "position": [-368, 576],
+        "note": "Text message responses"
+      },
+      {
+        "id": "7380f576-ad73-4b4c-a526-403828ec6d2d",
+        "name": "Send a text message4",
+        "type": "n8n-nodes-base.telegram", 
+        "position": [-368, 768],
+        "note": "Error/default responses"
+      }
+    ],
+    "critical_issue": "⚠️ NO TELEGRAM NODES FOUND after executeWorkflow nodes - Missing final image delivery with inline keyboard!",
+    "fix_needed": "Need to add Telegram sendPhoto node after executeWorkflow nodes that includes inline keyboard for Text Overlay"
+  }
+}
