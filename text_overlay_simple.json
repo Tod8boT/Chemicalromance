@@ -1,0 +1,198 @@
+{
+  "name": "Text Overlay Simple",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "overlay-form",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook1",
+      "name": "Form Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/Tod8boT/Chemicalromance/claude/n8n-cloudinary-text-overlay-011CUuaYqfZUHfh8YMBbp5Vm/text_overlay_form.html",
+        "options": {}
+      },
+      "id": "http1",
+      "name": "Get HTML",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $input.first().json;\nconst imageUrl = $('Form Webhook').first().json.query.image_url || '';\nconst chatId = $('Form Webhook').first().json.query.chat_id || '';\n\nlet htmlContent = typeof html === 'string' ? html : JSON.stringify(html);\n\n// Replace placeholders\nhtmlContent = htmlContent.replace(/\\{\\{\\$json\\.image_url\\}\\}/g, imageUrl);\nhtmlContent = htmlContent.replace(/\\{\\{\\$json\\.chat_id\\}\\}/g, chatId);\n\nreturn [{ html: htmlContent }];"
+      },
+      "id": "code1",
+      "name": "Replace Values",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond1",
+      "name": "Show Form",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "overlay-submit",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook2",
+      "name": "Submit Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 520]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json.body;\nconst cloudName = \"dz3cmaxnc\";\n\n// Build URL\nlet url = `https://res.cloudinary.com/${cloudName}/image/upload/`;\n\nconst text = data.text_content;\nconst size = data.font_size || 60;\nconst weight = data.font_weight || \"normal\";\nconst align = data.text_align || \"center\";\nconst color = data.text_color || \"ffffff\";\nconst arc = data.arc_curve || 0;\n\nconst encoded = encodeURIComponent(text);\nconst style = weight === \"normal\" ? \"\" : `_${weight}`;\n\nurl += `l_text:Arial_${size}${style}_${align}:${encoded},w_800,c_fit,co_rgb:${color}/`;\n\nif (data.stroke_enabled) {\n  url += `co_rgb:${data.stroke_color || \"000000\"},e_outline:${data.stroke_width || 5}/`;\n}\n\nif (data.shadow_enabled) {\n  url += `e_shadow:${data.shadow_strength || 50}/`;\n}\n\nif (arc != 0) {\n  url += `e_distort:arc:${arc}/`;\n}\n\nif (data.background_enabled) {\n  url += `b_rgb:${data.background_color || \"000000\"},o_${data.background_opacity || 80}/`;\n}\n\nconst pos = data.position || \"center\";\nconst x = data.x_offset || 0;\nconst y = data.y_offset || 0;\n\nurl += `fl_layer_apply,g_${pos}`;\nif (x != 0) url += `,x_${x}`;\nif (y != 0) url += `,y_${y}`;\nurl += `/`;\n\nif (data.media_type === \"video\") {\n  if (data.start_time) url += `so_${data.start_time}/`;\n  if (data.end_time) url += `eo_${data.end_time}/`;\n  if (data.fade_effect) url += `e_fade:1000/e_fade:-1000/`;\n}\n\nconst imgUrl = data.image_url;\nif (imgUrl && imgUrl.includes('http')) {\n  const pid = `fetch:${Buffer.from(imgUrl).toString('base64').replace(/=/g, '')}`;\n  url += pid;\n} else {\n  url += 'sample';\n}\n\nreturn [{\n  url: url,\n  chat_id: data.chat_id,\n  text: text\n}];"
+      },
+      "id": "code2",
+      "name": "Build URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 520]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendPhoto",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $json.chat_id }}"
+            },
+            {
+              "name": "photo",
+              "value": "={{ $json.url }}"
+            },
+            {
+              "name": "caption",
+              "value": "=✅ สร้างเสร็จแล้ว!\n\n📝 {{ $json.text }}\n🔗 {{ $json.url }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http2",
+      "name": "Send Photo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 520]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true }",
+        "options": {}
+      },
+      "id": "respond2",
+      "name": "Done",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 520]
+    }
+  ],
+  "connections": {
+    "Form Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get HTML": {
+      "main": [
+        [
+          {
+            "node": "Replace Values",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Values": {
+      "main": [
+        [
+          {
+            "node": "Show Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Submit Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build URL": {
+      "main": [
+        [
+          {
+            "node": "Send Photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Photo": {
+      "main": [
+        [
+          {
+            "node": "Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {},
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-01-08T00:00:00.000Z"
+}

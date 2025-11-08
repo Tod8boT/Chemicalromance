@@ -804,7 +804,7 @@
             };
 
             // Send to webhook
-            fetch(window.location.href, {
+            fetch(window.location.origin + '/webhook/overlay-submit', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
