@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ปรับแต่งข้อความบนรูปภาพ/วิดีโอ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .preview-section {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .preview-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        #imagePreview {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .form-section {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .label-with-value {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .current-value {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .slider-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .slider-wrapper {
+            flex: 1;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #e9ecef;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            border: none;
+        }
+
+        .number-input {
+            width: 80px;
+            flex-shrink: 0;
+        }
+
+        .color-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="color"] {
+            width: 60px;
+            height: 45px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .color-hex {
+            flex: 1;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .toggle-content {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .toggle-content.active {
+            display: block;
+        }
+
+        .position-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .position-btn {
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 20px;
+            text-align: center;
+        }
+
+        .position-btn:hover {
+            background: #f8f9fa;
+        }
+
+        .position-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .media-type-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .media-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .media-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .video-options {
+            display: none;
+        }
+
+        .video-options.active {
+            display: block;
+        }
+
+        .time-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .btn-preview {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-preview:hover {
+            background: #f8f9fa;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #1565c0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 ปรับแต่งข้อความ</h1>
+            <p>ใส่ตัวอักษรบนรูปภาพ/วิดีโอ ด้วย Cloudinary</p>
+        </div>
+
+        <div class="preview-section">
+            <div class="preview-container">
+                <img id="imagePreview" src="{{$json.image_url}}" alt="Preview">
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="info-box">
+                💡 <strong>เคล็ดลับ:</strong> ใช้ slider สำหรับปรับเร็ว หรือพิมพ์ตัวเลขเพื่อความแม่นยำ
+            </div>
+
+            <form id="textOverlayForm">
+                <!-- Media Type -->
+                <div class="form-group">
+                    <label>ประเภทสื่อ</label>
+                    <div class="media-type-toggle">
+                        <button type="button" class="media-btn active" data-type="image">📷 รูปภาพ</button>
+                        <button type="button" class="media-btn" data-type="video">🎬 วิดีโอ</button>
+                    </div>
+                </div>
+
+                <!-- Video Options -->
+                <div class="video-options" id="videoOptions">
+                    <div class="form-group">
+                        <label>⏱️ เวลาแสดงข้อความ (วินาที)</label>
+                        <div class="time-inputs">
+                            <div>
+                                <label style="font-size: 13px; color: #6c757d;">เริ่มต้น</label>
+                                <input type="number" id="startTime" min="0" step="0.1" placeholder="0" value="0">
+                            </div>
+                            <div>
+                                <label style="font-size: 13px; color: #6c757d;">สิ้นสุด</label>
+                                <input type="number" id="endTime" min="0" step="0.1" placeholder="10" value="10">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="fadeEffect">
+                        <label for="fadeEffect" style="margin: 0;">เพิ่ม Fade In/Out (1 วินาที)</label>
+                    </div>
+                </div>
+
+                <!-- Text Content -->
+                <div class="form-group">
+                    <label>📝 ข้อความ</label>
+                    <textarea id="textContent" placeholder="พิมพ์ข้อความที่ต้องการใส่..." required></textarea>
+                </div>
+
+                <!-- Font Size -->
+                <div class="form-group">
+                    <div class="label-with-value">
+                        <label>📏 ขนาดตัวอักษร</label>
+                        <span class="current-value" id="fontSizeValue">60</span>
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-wrapper">
+                            <input type="range" id="fontSize" min="10" max="200" value="60" step="1">
+                        </div>
+                        <input type="number" id="fontSizeNumber" class="number-input" min="10" max="200" value="60">
+                    </div>
+                </div>
+
+                <!-- Arc Curve (สำคัญสำหรับแบรนด์!) -->
+                <div class="form-group">
+                    <div class="label-with-value">
+                        <label>🌈 โค้งตัวอักษร (Arc Curve)</label>
+                        <span class="current-value" id="arcValue">0°</span>
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-wrapper">
+                            <input type="range" id="arcCurve" min="-180" max="180" value="0" step="5">
+                        </div>
+                        <input type="number" id="arcNumber" class="number-input" min="-180" max="180" value="0">
+                    </div>
+                </div>
+
+                <!-- Text Color -->
+                <div class="form-group">
+                    <label>🎨 สีตัวอักษร</label>
+                    <div class="color-input-group">
+                        <input type="color" id="textColor" value="#ffffff">
+                        <input type="text" id="textColorHex" class="color-hex" value="#ffffff" placeholder="#ffffff">
+                    </div>
+                </div>
+
+                <!-- Font Weight -->
+                <div class="form-group">
+                    <label>✍️ น้ำหนักตัวอักษร</label>
+                    <select id="fontWeight">
+                        <option value="normal">ปกติ (Normal)</option>
+                        <option value="bold">หนา (Bold)</option>
+                    </select>
+                </div>
+
+                <!-- Text Alignment -->
+                <div class="form-group">
+                    <label>📐 การจัดตำแหน่ง</label>
+                    <select id="textAlign">
+                        <option value="center">กึ่งกลาง (Center)</option>
+                        <option value="left">ซ้าย (Left)</option>
+                        <option value="right">ขวา (Right)</option>
+                    </select>
+                </div>
+
+                <!-- Position -->
+                <div class="form-group">
+                    <label>📍 ตำแหน่งบนรูป</label>
+                    <div class="position-grid">
+                        <button type="button" class="position-btn" data-position="north_west">↖️</button>
+                        <button type="button" class="position-btn" data-position="north">⬆️</button>
+                        <button type="button" class="position-btn" data-position="north_east">↗️</button>
+                        <button type="button" class="position-btn" data-position="west">⬅️</button>
+                        <button type="button" class="position-btn active" data-position="center">🎯</button>
+                        <button type="button" class="position-btn" data-position="east">➡️</button>
+                        <button type="button" class="position-btn" data-position="south_west">↙️</button>
+                        <button type="button" class="position-btn" data-position="south">⬇️</button>
+                        <button type="button" class="position-btn" data-position="south_east">↘️</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label style="font-size: 13px; color: #6c757d;">ปรับตำแหน่งละเอียด (X, Y offset)</label>
+                        <div class="slider-group" style="margin-bottom: 10px;">
+                            <span style="width: 30px;">X:</span>
+                            <div class="slider-wrapper">
+                                <input type="range" id="xOffset" min="-500" max="500" value="0" step="5">
+                            </div>
+                            <input type="number" id="xOffsetNumber" class="number-input" min="-500" max="500" value="0">
+                        </div>
+                        <div class="slider-group">
+                            <span style="width: 30px;">Y:</span>
+                            <div class="slider-wrapper">
+                                <input type="range" id="yOffset" min="-500" max="500" value="0" step="5">
+                            </div>
+                            <input type="number" id="yOffsetNumber" class="number-input" min="-500" max="500" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stroke/Border -->
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="strokeEnabled">
+                        <label for="strokeEnabled" style="margin: 0;">🖊️ เพิ่มขอบตัวอักษร (Stroke)</label>
+                    </div>
+
+                    <div class="toggle-content" id="strokeOptions">
+                        <div class="form-group">
+                            <label>สีขอบ</label>
+                            <div class="color-input-group">
+                                <input type="color" id="strokeColor" value="#000000">
+                                <input type="text" id="strokeColorHex" class="color-hex" value="#000000">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="label-with-value">
+                                <label>ความหนาขอบ</label>
+                                <span class="current-value" id="strokeWidthValue">5</span>
+                            </div>
+                            <div class="slider-group">
+                                <div class="slider-wrapper">
+                                    <input type="range" id="strokeWidth" min="1" max="20" value="5" step="1">
+                                </div>
+                                <input type="number" id="strokeWidthNumber" class="number-input" min="1" max="20" value="5">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shadow -->
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="shadowEnabled">
+                        <label for="shadowEnabled" style="margin: 0;">🌑 เพิ่มเงา (Shadow)</label>
+                    </div>
+
+                    <div class="toggle-content" id="shadowOptions">
+                        <div class="form-group">
+                            <div class="label-with-value">
+                                <label>ความเข้มเงา</label>
+                                <span class="current-value" id="shadowStrengthValue">50</span>
+                            </div>
+                            <div class="slider-group">
+                                <div class="slider-wrapper">
+                                    <input type="range" id="shadowStrength" min="0" max="100" value="50" step="5">
+                                </div>
+                                <input type="number" id="shadowStrengthNumber" class="number-input" min="0" max="100" value="50">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Background Box -->
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="backgroundEnabled">
+                        <label for="backgroundEnabled" style="margin: 0;">📦 เพิ่มพื้นหลังข้อความ</label>
+                    </div>
+
+                    <div class="toggle-content" id="backgroundOptions">
+                        <div class="form-group">
+                            <label>สีพื้นหลัง</label>
+                            <div class="color-input-group">
+                                <input type="color" id="backgroundColor" value="#000000">
+                                <input type="text" id="backgroundColorHex" class="color-hex" value="#000000">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="label-with-value">
+                                <label>ความโปร่งใส</label>
+                                <span class="current-value" id="bgOpacityValue">80%</span>
+                            </div>
+                            <div class="slider-group">
+                                <div class="slider-wrapper">
+                                    <input type="range" id="bgOpacity" min="0" max="100" value="80" step="5">
+                                </div>
+                                <input type="number" id="bgOpacityNumber" class="number-input" min="0" max="100" value="80">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden Fields -->
+                <input type="hidden" id="imageUrl" value="{{$json.image_url}}">
+                <input type="hidden" id="chatId" value="{{$json.chat_id}}">
+                <input type="hidden" id="position" value="center">
+
+                <!-- Buttons -->
+                <div class="button-group">
+                    <button type="button" class="btn-preview" onclick="previewOverlay()">👁️ ดูตัวอย่าง</button>
+                    <button type="submit" class="btn-submit">✅ สร้างเลย</button>
+                </div>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 15px; color: #667eea; font-weight: 600;">กำลังสร้าง...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sync sliders with number inputs
+        function syncSlider(sliderId, numberId, valueId, suffix = '') {
+            const slider = document.getElementById(sliderId);
+            const number = document.getElementById(numberId);
+            const valueDisplay = document.getElementById(valueId);
+
+            slider.addEventListener('input', (e) => {
+                number.value = e.target.value;
+                if (valueDisplay) valueDisplay.textContent = e.target.value + suffix;
+            });
+
+            number.addEventListener('input', (e) => {
+                slider.value = e.target.value;
+                if (valueDisplay) valueDisplay.textContent = e.target.value + suffix;
+            });
+        }
+
+        syncSlider('fontSize', 'fontSizeNumber', 'fontSizeValue');
+        syncSlider('arcCurve', 'arcNumber', 'arcValue', '°');
+        syncSlider('xOffset', 'xOffsetNumber');
+        syncSlider('yOffset', 'yOffsetNumber');
+        syncSlider('strokeWidth', 'strokeWidthNumber', 'strokeWidthValue');
+        syncSlider('shadowStrength', 'shadowStrengthNumber', 'shadowStrengthValue');
+        syncSlider('bgOpacity', 'bgOpacityNumber', 'bgOpacityValue', '%');
+
+        // Sync color picker with hex input
+        function syncColor(pickerId, hexId) {
+            const picker = document.getElementById(pickerId);
+            const hex = document.getElementById(hexId);
+
+            picker.addEventListener('input', (e) => {
+                hex.value = e.target.value;
+            });
+
+            hex.addEventListener('input', (e) => {
+                let value = e.target.value;
+                if (!value.startsWith('#')) value = '#' + value;
+                picker.value = value;
+            });
+        }
+
+        syncColor('textColor', 'textColorHex');
+        syncColor('strokeColor', 'strokeColorHex');
+        syncColor('backgroundColor', 'backgroundColorHex');
+
+        // Position buttons
+        document.querySelectorAll('.position-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.position-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById('position').value = this.dataset.position;
+            });
+        });
+
+        // Media type toggle
+        document.querySelectorAll('.media-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.media-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                const isVideo = this.dataset.type === 'video';
+                document.getElementById('videoOptions').classList.toggle('active', isVideo);
+            });
+        });
+
+        // Toggle sections
+        document.getElementById('strokeEnabled').addEventListener('change', function() {
+            document.getElementById('strokeOptions').classList.toggle('active', this.checked);
+        });
+
+        document.getElementById('shadowEnabled').addEventListener('change', function() {
+            document.getElementById('shadowOptions').classList.toggle('active', this.checked);
+        });
+
+        document.getElementById('backgroundEnabled').addEventListener('change', function() {
+            document.getElementById('backgroundOptions').classList.toggle('active', this.checked);
+        });
+
+        // Preview function
+        function previewOverlay() {
+            const cloudinaryUrl = buildCloudinaryURL();
+            window.open(cloudinaryUrl, '_blank');
+        }
+
+        // Build Cloudinary URL
+        function buildCloudinaryURL() {
+            const cloudName = 'dz3cmaxnc';
+            const imageUrl = document.getElementById('imageUrl').value;
+
+            // Extract public ID from URL
+            let publicId = 'sample';
+            if (imageUrl.includes('fal.ai')) {
+                // For Fal.AI URLs, we'll use fetch:base64
+                publicId = 'fetch:' + btoa(imageUrl).replace(/=/g, '');
+            }
+
+            let url = `https://res.cloudinary.com/${cloudName}/image/upload/`;
+
+            // Text layer
+            const text = document.getElementById('textContent').value;
+            const font = 'Arial';
+            const size = document.getElementById('fontSizeNumber').value;
+            const weight = document.getElementById('fontWeight').value;
+            const align = document.getElementById('textAlign').value;
+            const color = document.getElementById('textColorHex').value.replace('#', '');
+            const arc = document.getElementById('arcNumber').value;
+
+            const encodedText = encodeURIComponent(text);
+            const fontStyle = weight === 'normal' ? '' : `_${weight}`;
+
+            url += `l_text:${font}_${size}${fontStyle}_${align}:${encodedText},w_800,c_fit,co_rgb:${color}/`;
+
+            // Stroke
+            if (document.getElementById('strokeEnabled').checked) {
+                const strokeColor = document.getElementById('strokeColorHex').value.replace('#', '');
+                const strokeWidth = document.getElementById('strokeWidthNumber').value;
+                url += `co_rgb:${strokeColor},e_outline:${strokeWidth}/`;
+            }
+
+            // Shadow
+            if (document.getElementById('shadowEnabled').checked) {
+                const shadowStrength = document.getElementById('shadowStrengthNumber').value;
+                url += `e_shadow:${shadowStrength}/`;
+            }
+
+            // Arc
+            if (arc != 0) {
+                url += `e_distort:arc:${arc}/`;
+            }
+
+            // Background
+            if (document.getElementById('backgroundEnabled').checked) {
+                const bgColor = document.getElementById('backgroundColorHex').value.replace('#', '');
+                const bgOpacity = document.getElementById('bgOpacityNumber').value;
+                url += `b_rgb:${bgColor},o_${bgOpacity}/`;
+            }
+
+            // Position
+            const position = document.getElementById('position').value;
+            const xOffset = document.getElementById('xOffsetNumber').value;
+            const yOffset = document.getElementById('yOffsetNumber').value;
+
+            url += `fl_layer_apply,g_${position}`;
+            if (xOffset != 0) url += `,x_${xOffset}`;
+            if (yOffset != 0) url += `,y_${yOffset}`;
+            url += `/`;
+
+            // Video timing (if video)
+            const isVideo = document.querySelector('.media-btn.active').dataset.type === 'video';
+            if (isVideo) {
+                const startTime = document.getElementById('startTime').value;
+                const endTime = document.getElementById('endTime').value;
+                if (startTime) url += `so_${startTime}/`;
+                if (endTime) url += `eo_${endTime}/`;
+
+                if (document.getElementById('fadeEffect').checked) {
+                    url += `e_fade:1000/e_fade:-1000/`;
+                }
+            }
+
+            url += `${publicId}`;
+
+            return url;
+        }
+
+        // Form submission
+        document.getElementById('textOverlayForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            document.getElementById('loading').classList.add('active');
+            document.querySelector('.form-section form').style.display = 'none';
+
+            const formData = {
+                text_content: document.getElementById('textContent').value,
+                font_size: document.getElementById('fontSizeNumber').value,
+                arc_curve: document.getElementById('arcNumber').value,
+                text_color: document.getElementById('textColorHex').value.replace('#', ''),
+                font_weight: document.getElementById('fontWeight').value,
+                text_align: document.getElementById('textAlign').value,
+                position: document.getElementById('position').value,
+                x_offset: document.getElementById('xOffsetNumber').value,
+                y_offset: document.getElementById('yOffsetNumber').value,
+                stroke_enabled: document.getElementById('strokeEnabled').checked,
+                stroke_color: document.getElementById('strokeColorHex').value.replace('#', ''),
+                stroke_width: document.getElementById('strokeWidthNumber').value,
+                shadow_enabled: document.getElementById('shadowEnabled').checked,
+                shadow_strength: document.getElementById('shadowStrengthNumber').value,
+                background_enabled: document.getElementById('backgroundEnabled').checked,
+                background_color: document.getElementById('backgroundColorHex').value.replace('#', ''),
+                background_opacity: document.getElementById('bgOpacityNumber').value,
+                image_url: document.getElementById('imageUrl').value,
+                chat_id: document.getElementById('chatId').value,
+                media_type: document.querySelector('.media-btn.active').dataset.type,
+                start_time: document.getElementById('startTime').value,
+                end_time: document.getElementById('endTime').value,
+                fade_effect: document.getElementById('fadeEffect').checked
+            };
+
+            // Send to webhook
+            fetch(window.location.href, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('✅ สร้างสำเร็จ! กำลังส่งกลับไปที่ Telegram');
+                window.close();
+            })
+            .catch(error => {
+                alert('❌ เกิดข้อผิดพลาด: ' + error);
+                document.getElementById('loading').classList.remove('active');
+                document.querySelector('.form-section form').style.display = 'block';
+            });
+        });
+    </script>
+</body>
+</html>
