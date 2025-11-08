@@ -1,0 +1,17 @@
+template_id,position,font_size,font_family,color,stroke_enabled,stroke_color,stroke_width,shadow_enabled,shadow_strength,arc,bg_enabled,bg_color,bg_opacity,x_offset,y_offset,max_width,notes
+success_story,north,80,Mitr,#FFD700,TRUE,#3B5998,5,TRUE,50,0,FALSE,#000000,80,0,50,800,Thai business success stories - yellow text with blue stroke
+community_moments,center,90,Mitr,#FFFFFF,TRUE,#000000,4,TRUE,40,0,TRUE,#000000,70,0,0,900,Community gathering - white text with black stroke + background
+lifestyle_photography,south,75,Mitr,#FFD700,TRUE,#3B5998,4,TRUE,45,0,FALSE,#000000,0,0,-50,850,Lifestyle moments - yellow text at bottom
+product_demo,north,70,Mitr,#3B5998,TRUE,#FFD700,3,FALSE,0,0,TRUE,#FFFFFF,90,0,30,800,Product showcase - blue text with yellow stroke + white box
+freezer_studio,center,100,Mitr,#FFD700,TRUE,#000000,6,TRUE,60,0,FALSE,#000000,0,0,0,1000,Studio shot - large yellow text with strong shadow
+plush_balloon,north,60,Mitr,#3B5998,FALSE,#000000,0,FALSE,0,0,FALSE,#000000,0,0,40,700,Playful style - simple blue text
+isometric_scene,south,65,Mitr,#FFD700,TRUE,#3B5998,3,FALSE,0,0,TRUE,#3B5998,80,0,-40,750,3D isometric - yellow text with blue background
+flash_sale,north,90,Mitr,#FF0000,TRUE,#FFD700,8,TRUE,70,-15,TRUE,#FFD700,85,0,30,950,"Flash sale - red text, curved upward, yellow background"
+price_tag,center,120,Mitr,#FFFFFF,TRUE,#FF0000,6,TRUE,50,0,TRUE,#FF0000,90,0,0,600,"Price tag - large white text, red stroke + background"
+avatar_initials,center,100,Mitr,#FFFFFF,TRUE,#3B5998,4,FALSE,0,0,TRUE,#3B5998,70,0,0,400,Avatar initials - white text on blue circle
+text_top_left,north_west,70,Mitr,#FFD700,TRUE,#000000,4,TRUE,40,0,FALSE,#000000,0,20,20,700,Top left corner positioning
+text_top_right,north_east,70,Mitr,#FFD700,TRUE,#000000,4,TRUE,40,0,FALSE,#000000,0,20,20,700,Top right corner positioning
+text_bottom_left,south_west,70,Mitr,#FFD700,TRUE,#000000,4,TRUE,40,0,FALSE,#000000,0,20,-20,700,Bottom left corner positioning
+text_bottom_right,south_east,70,Mitr,#FFD700,TRUE,#000000,4,TRUE,40,0,FALSE,#000000,0,20,-20,700,Bottom right corner positioning
+minimal_clean,north,80,Sarabun,#000000,FALSE,#000000,0,FALSE,0,0,FALSE,#000000,0,0,40,900,"Clean minimal - black text only, no effects"
+elegant_white,center,85,Sarabun,#FFFFFF,TRUE,#000000,2,TRUE,30,0,FALSE,#000000,0,0,0,850,Elegant white text with subtle effects
