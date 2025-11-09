@@ -1,0 +1,594 @@
+{
+  "name": "Main_Router_Enhanced (with Error Handling & Check Post)",
+  "description": "Enhanced Telegram workflow hub with error handling and check_post integration",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "id": "telegram-trigger",
+      "name": "Receive Message (Telegram Trigger)",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "position": [240, 400],
+      "webhookId": "main-router-webhook",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "main-bot-creds",
+          "name": "main_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "has-photo",
+                    "leftValue": "={{ $json.message.photo }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "array",
+                      "operation": "exists"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Photo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "has-text",
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Text"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "route-message-type",
+      "name": "Route Message Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "อยากให้ทำอะไรกับภาพนี้",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🎨 สร้างภาพ",
+                    "additionalFields": {
+                      "callback_data": "create_pic"
+                    }
+                  },
+                  {
+                    "text": "✏️ แก้ไขภาพ",
+                    "additionalFields": {
+                      "callback_data": "edit_pic"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "📋 ตรวจงาน (Check Post)",
+                    "additionalFields": {
+                      "callback_data": "check_post"
+                    }
+                  },
+                  {
+                    "text": "💾 เก็บภาพ",
+                    "additionalFields": {
+                      "callback_data": "keep_pic"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "send-photo-menu",
+      "name": "Send Photo Menu",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [680, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "main-bot-creds",
+          "name": "main_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "create-pic",
+                    "leftValue": "={{ $json.callback_data }}",
+                    "rightValue": "create_pic",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "create_pic"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "check-post",
+                    "leftValue": "={{ $json.callback_data }}",
+                    "rightValue": "check_post",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "check_post"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "route-action",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "={{ $json.chat_id }}",
+        "message": "ใช้ template ในการสร้างภาพหรือไม่?",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "options": {}
+      },
+      "id": "ask-template",
+      "name": "Ask Template Choice",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1120, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "main-bot-creds",
+          "name": "main_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "template-approved",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-template-choice",
+      "name": "Check Template Choice",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "FX17QqYlrta6GyaA",
+          "mode": "id",
+          "cachedResultName": "create_image_with_template"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_chat_id": "={{ $json.chat_id }}",
+            "message_photo": "={{ $json.photo }}",
+            "data_approved": "={{ $json.data.approved }}"
+          }
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "call-with-template",
+      "name": "Call Create Image WITH Template",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [1560, 120],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "rbs62NZXnwP3FtPq",
+          "mode": "id",
+          "cachedResultName": "create_image_no_template"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_chat_id": "={{ $json.chat_id }}",
+            "message_photo": "={{ $json.photo }}",
+            "data_approved": "={{ $json.data.approved }}"
+          }
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "call-no-template",
+      "name": "Call Create Image NO Template",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [1560, 280],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract data for Check Post\nconst data = $input.first().json;\n\n// Get file_id from original message\nconst fileId = data.message?.photo?.[2]?.file_id || data.file_id;\nconst chatId = data.message?.chat?.id || data.chat_id;\n\n// Get Telegram file path\nconst botToken = $env.TELEGRAM_BOT_TOKEN;\nconst imageUrl = `https://api.telegram.org/file/bot${botToken}/${fileId}`;\n\nreturn [{\n  post_id: null, // Will be generated\n  chat_id: chatId,\n  file_id: fileId,\n  image_url: imageUrl,\n  caption: data.message?.caption || '',\n  iteration_count: 0 // Start from 0\n}];"
+      },
+      "id": "prepare-check-post-data",
+      "name": "Prepare Check Post Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_HOST }}/webhook/check-post",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $json.chat_id }}"
+            },
+            {
+              "name": "file_id",
+              "value": "={{ $json.file_id }}"
+            },
+            {
+              "name": "image_url",
+              "value": "={{ $json.image_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "iteration_count",
+              "value": "={{ $json.iteration_count }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "retry": {
+            "enabled": true,
+            "maxRetries": 3,
+            "retryInterval": 2000
+          }
+        }
+      },
+      "id": "call-check-post",
+      "name": "Call Check Post System",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1340, 400],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Error handler for all sub-workflows\nconst error = $input.first().json.error || {};\nconst chatId = $input.first().json.chat_id;\n\nconst errorMessage = `❌ **เกิดข้อผิดพลาด**\\n\\nประเภท: ${error.name || 'Unknown'}\\nรายละเอียด: ${error.message || 'No details'}\\n\\nกรุณาลองใหม่อีกครั้ง หรือติดต่อแอดมิน`;\n\nreturn [{\n  chat_id: chatId,\n  error_message: errorMessage,\n  error_details: error\n}];"
+      },
+      "id": "handle-error",
+      "name": "Handle Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 400]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.error_message }}",
+        "additionalFields": {}
+      },
+      "id": "send-error-notification",
+      "name": "Send Error Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2000, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "main-bot-creds",
+          "name": "main_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "={{ $json.chat_id }}",
+        "file": "={{ $json.cloudinary_url || $json.image_url }}",
+        "caption": "=✅ สร้างภาพเสร็จแล้ว!\n\nต้องการเพิ่มข้อความหรือตรวจงานไหม?",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🎨 เพิ่มข้อความ (Arc Curve)",
+                    "additionalFields": {
+                      "url": "={{ $env.N8N_HOST }}/webhook/overlay-form?image_url={{ encodeURIComponent($json.cloudinary_url || $json.image_url) }}&chat_id={{ $json.chat_id }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "📋 ตรวจงาน (Check Post)",
+                    "additionalFields": {
+                      "callback_data": "=check_post_{{ $json.post_id || 'new' }}"
+                    }
+                  },
+                  {
+                    "text": "✅ เสร็จแล้ว",
+                    "additionalFields": {
+                      "callback_data": "done"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "send-completion-with-options",
+      "name": "Send Completion with Options",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1780, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "main-bot-creds",
+          "name": "main_bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Receive Message (Telegram Trigger)": {
+      "main": [
+        [
+          {
+            "node": "Route Message Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Message Type": {
+      "main": [
+        [
+          {
+            "node": "Send Photo Menu",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Send Photo Menu": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Ask Template Choice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Check Post Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Template Choice": {
+      "main": [
+        [
+          {
+            "node": "Check Template Choice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Template Choice": {
+      "main": [
+        [
+          {
+            "node": "Call Create Image WITH Template",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call Create Image NO Template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Create Image WITH Template": {
+      "main": [
+        [
+          {
+            "node": "Send Completion with Options",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Create Image NO Template": {
+      "main": [
+        [
+          {
+            "node": "Send Completion with Options",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Check Post Data": {
+      "main": [
+        [
+          {
+            "node": "Call Check Post System",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Check Post System": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Handle Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Error": {
+      "main": [
+        [
+          {
+            "node": "Send Error Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "errorHandling": {
+      "itemError": "continueRegularOutput",
+      "itemErrorLogging": "alwaysLogging"
+    }
+  },
+  "meta": {
+    "description": "Enhanced main router with error handling and Check Post integration",
+    "improvements": [
+      "Error handling with try-catch pattern",
+      "Retry logic for HTTP requests",
+      "Check Post integration",
+      "Text Overlay integration",
+      "User-friendly error messages",
+      "Completion options after image creation"
+    ]
+  }
+}

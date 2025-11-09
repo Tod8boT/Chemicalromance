@@ -1,0 +1,499 @@
+{
+  "name": "Check_Post_System",
+  "description": "Post inspection and editing workflow with loop protection",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "check-post",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "check-post-webhook",
+      "name": "Check Post Request Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and validate request data with state tracking\nconst data = $input.first().json;\n\n// Generate unique post ID\nconst postId = data.post_id || `POST_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;\nconst timestamp = new Date().toISOString();\n\n// Get current iteration count from state (防止 infinite loop)\nconst currentIteration = data.iteration_count || 0;\nconst MAX_ITERATIONS = 5; // 最大 5 ครั้ง\n\n// Check if exceeded max iterations\nif (currentIteration >= MAX_ITERATIONS) {\n  throw new Error(`Max iterations (${MAX_ITERATIONS}) exceeded for post ${postId}. Please review manually.`);\n}\n\nreturn [{\n  post_id: postId,\n  chat_id: data.chat_id,\n  file_id: data.file_id,\n  image_url: data.image_url,\n  caption: data.caption || '',\n  hashtags: data.hashtags || [],\n  campaign: data.campaign || 'none',\n  \n  // State tracking\n  iteration_count: currentIteration,\n  max_iterations: MAX_ITERATIONS,\n  remaining_iterations: MAX_ITERATIONS - currentIteration,\n  \n  // Status\n  status: 'inspection_requested',\n  created_at: timestamp,\n  last_modified: timestamp,\n  \n  // History\n  edit_history: data.edit_history || [],\n  previous_action: data.previous_action || 'initial'\n}];"
+      },
+      "id": "process-check-request",
+      "name": "Process Check Request (with Loop Protection)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "POST_STATE_TRACKING_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Post_States",
+          "mode": "name"
+        },
+        "operation": "appendOrUpdate",
+        "dataMode": "defineBelow",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "post_id": "={{ $json.post_id }}",
+            "status": "={{ $json.status }}",
+            "iteration_count": "={{ $json.iteration_count }}",
+            "remaining_iterations": "={{ $json.remaining_iterations }}",
+            "last_modified": "={{ $json.last_modified }}",
+            "previous_action": "={{ $json.previous_action }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "update-state-tracking",
+      "name": "Update Post State Tracking (Google Sheets)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "={{ $json.chat_id }}",
+        "file": "={{ $json.image_url }}",
+        "caption": "=📋 **ตรวจงานโพสต์**\n\n🆔 Post ID: {{ $json.post_id }}\n📝 Caption: {{ $json.caption }}\n🔄 Iteration: {{ $json.iteration_count + 1 }}/{{ $json.max_iterations }}\n⏰ {{ $json.last_modified }}\n\n✅ เลือกการแก้ไข:",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "✏️ Edit Image",
+                    "additionalFields": {
+                      "callback_data": "=edit_image_{{ $json.post_id }}"
+                    }
+                  },
+                  {
+                    "text": "🎨 Text Overlay",
+                    "additionalFields": {
+                      "url": "={{ $env.N8N_HOST }}/webhook/overlay-form?image_url={{ encodeURIComponent($json.image_url) }}&chat_id={{ $json.chat_id }}&post_id={{ $json.post_id }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🎬 Create Video",
+                    "additionalFields": {
+                      "callback_data": "=create_video_{{ $json.post_id }}"
+                    }
+                  },
+                  {
+                    "text": "📹 Ext Overlay Video",
+                    "additionalFields": {
+                      "callback_data": "=ext_video_{{ $json.post_id }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "⏰ กำหนดเวลาโพสต์",
+                    "additionalFields": {
+                      "callback_data": "=schedule_{{ $json.post_id }}"
+                    }
+                  },
+                  {
+                    "text": "✅ อนุมัติโพสต์เลย",
+                    "additionalFields": {
+                      "callback_data": "=approve_{{ $json.post_id }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🔄 รีเซ็ตและเริ่มใหม่",
+                    "additionalFields": {
+                      "callback_data": "=reset_{{ $json.post_id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "send-inspection-ui",
+      "name": "Send Inspection UI (Telegram)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [900, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-bot-creds",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "iteration-warning",
+              "leftValue": "={{ $json.remaining_iterations }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "number",
+                "operation": "smallerEqual"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-iteration-warning",
+      "name": "Check Iteration Warning",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 560]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "=⚠️ **คำเตือน: ใกล้ถึงขีดจำกัด**\n\n🔄 คุณเหลือการแก้ไขอีก {{ $json.remaining_iterations }} ครั้ง\n📊 ใช้ไปแล้ว {{ $json.iteration_count }}/{{ $json.max_iterations }}\n\n💡 แนะนำ:\n- ตรวจสอบให้ละเอียดก่อนแก้ไข\n- ถ้าเกินลิมิต ต้องรีเซ็ตใหม่\n- หรือติดต่อแอดมินเพื่อ override",
+        "additionalFields": {}
+      },
+      "id": "send-iteration-warning",
+      "name": "Send Iteration Warning",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1100, 640],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-bot-creds",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "check-post-callback",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "callback-webhook",
+      "name": "Callback Webhook (After Edit)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 800]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle callback after user makes changes\nconst data = $input.first().json;\n\n// Extract action from callback\nconst action = data.action; // edit_image, text_overlay, create_video, etc.\nconst postId = data.post_id;\n\n// Get current state from Google Sheets\nconst currentIteration = parseInt(data.current_iteration || 0);\nconst newIteration = currentIteration + 1;\n\n// Add to edit history\nconst editHistory = data.edit_history || [];\neditHistory.push({\n  iteration: newIteration,\n  action: action,\n  timestamp: new Date().toISOString(),\n  changes: data.changes || {}\n});\n\n// Prepare data for re-inspection\nreturn [{\n  post_id: postId,\n  chat_id: data.chat_id,\n  image_url: data.new_image_url || data.image_url,\n  caption: data.new_caption || data.caption,\n  \n  // Increment iteration counter\n  iteration_count: newIteration,\n  previous_action: action,\n  edit_history: editHistory,\n  \n  // Pass through other data\n  hashtags: data.hashtags,\n  campaign: data.campaign\n}];"
+      },
+      "id": "process-callback",
+      "name": "Process Callback & Increment Iteration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 800]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "action-check",
+              "leftValue": "={{ $json.previous_action }}",
+              "rightValue": "reset",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-if-not-reset",
+      "name": "Check If Not Reset",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 800]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_HOST }}/webhook/check-post",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "post_id",
+              "value": "={{ $json.post_id }}"
+            },
+            {
+              "name": "chat_id",
+              "value": "={{ $json.chat_id }}"
+            },
+            {
+              "name": "image_url",
+              "value": "={{ $json.image_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "iteration_count",
+              "value": "={{ $json.iteration_count }}"
+            },
+            {
+              "name": "edit_history",
+              "value": "={{ JSON.stringify($json.edit_history) }}"
+            },
+            {
+              "name": "previous_action",
+              "value": "={{ $json.previous_action }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "loop-back-to-check",
+      "name": "Loop Back to Check Post (Recursive)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [900, 720]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reset iteration counter\nconst data = $input.first().json;\n\nreturn [{\n  post_id: data.post_id,\n  chat_id: data.chat_id,\n  image_url: data.image_url,\n  caption: data.caption,\n  hashtags: data.hashtags,\n  campaign: data.campaign,\n  \n  // Reset to 0\n  iteration_count: 0,\n  previous_action: 'reset',\n  edit_history: [{\n    iteration: 0,\n    action: 'reset',\n    timestamp: new Date().toISOString(),\n    reason: 'User requested reset'\n  }]\n}];"
+      },
+      "id": "reset-iteration-counter",
+      "name": "Reset Iteration Counter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 880]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "=🔄 **รีเซ็ตสำเร็จ**\n\nPost ID: {{ $json.post_id }}\nIteration counter ถูกรีเซ็ตเป็น 0\n\nคุณสามารถแก้ไขได้อีก {{ $json.max_iterations || 5 }} ครั้ง",
+        "additionalFields": {}
+      },
+      "id": "send-reset-confirmation",
+      "name": "Send Reset Confirmation",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1100, 880],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-bot-creds",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, post_id: $json.post_id, iteration: $json.iteration_count, remaining: $json.remaining_iterations } }}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, action: 'looped_back', post_id: $json.post_id } }}",
+        "options": {}
+      },
+      "id": "respond-callback-success",
+      "name": "Respond Callback Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 800]
+    }
+  ],
+  "connections": {
+    "Check Post Request Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process Check Request (with Loop Protection)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Check Request (with Loop Protection)": {
+      "main": [
+        [
+          {
+            "node": "Update Post State Tracking (Google Sheets)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Post State Tracking (Google Sheets)": {
+      "main": [
+        [
+          {
+            "node": "Send Inspection UI (Telegram)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Iteration Warning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Inspection UI (Telegram)": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Iteration Warning": {
+      "main": [
+        [
+          {
+            "node": "Send Iteration Warning",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Callback Webhook (After Edit)": {
+      "main": [
+        [
+          {
+            "node": "Process Callback & Increment Iteration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Callback & Increment Iteration": {
+      "main": [
+        [
+          {
+            "node": "Check If Not Reset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Not Reset": {
+      "main": [
+        [
+          {
+            "node": "Loop Back to Check Post (Recursive)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reset Iteration Counter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Back to Check Post (Recursive)": {
+      "main": [
+        [
+          {
+            "node": "Respond Callback Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reset Iteration Counter": {
+      "main": [
+        [
+          {
+            "node": "Send Reset Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Reset Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Loop Back to Check Post (Recursive)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "Post inspection system with loop protection and state tracking",
+    "features": [
+      "Max iteration limit (5 times)",
+      "State tracking via Google Sheets",
+      "Edit history logging",
+      "Warning notifications",
+      "Reset capability",
+      "Multiple edit options (Text Overlay, Video, etc.)",
+      "Recursive loop with protection"
+    ],
+    "loop_protection": {
+      "max_iterations": 5,
+      "warning_threshold": 2,
+      "tracking_method": "Google Sheets + iteration_count",
+      "reset_available": true
+    }
+  }
+}

@@ -1,0 +1,6 @@
+post_id,chat_id,status,iteration_count,max_iterations,remaining_iterations,previous_action,created_at,last_modified,image_url,caption,notes
+POST_001,123456,inspection_requested,0,5,5,initial,2025-11-09T03:00:00Z,2025-11-09T03:00:00Z,https://example.com/image1.jpg,Sample post caption,Initial inspection
+POST_002,123456,editing,2,5,3,text_overlay,2025-11-09T03:10:00Z,2025-11-09T03:25:00Z,https://example.com/image2.jpg,Updated caption with text,Added arc curve text overlay
+POST_003,789012,max_iterations_reached,5,5,0,edit_image,2025-11-09T03:15:00Z,2025-11-09T03:45:00Z,https://example.com/image3.jpg,Final version,Reached max limit - needs admin review
+POST_004,123456,reset,0,5,5,reset,2025-11-09T03:20:00Z,2025-11-09T03:20:00Z,https://example.com/image4.jpg,Starting fresh,User requested reset
+POST_005,345678,approved,3,5,2,schedule,2025-11-09T03:30:00Z,2025-11-09T03:40:00Z,https://example.com/image5.jpg,Approved for posting,Scheduled for 19:00
