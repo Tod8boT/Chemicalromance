@@ -1,0 +1,235 @@
+{
+  "name": "Text Overlay Simple",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "overlay-form",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "650bc11d-ff5e-4d8c-b9a5-3bae9817c7d1",
+      "name": "Form Webhook1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        1104
+      ],
+      "webhookId": "0157052a-8752-4145-afe9-8372c7d08160"
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/Tod8boT/Chemicalromance/claude/n8n-cloudinary-text-overlay-011CUuaYqfZUHfh8YMBbp5Vm/text_overlay_form.html",
+        "options": {}
+      },
+      "id": "6d80f9d2-0873-4f1a-a527-39bc31d4c857",
+      "name": "Get HTML1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1552,
+        1104
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $input.first().json;\nconst imageUrl = $('Form Webhook1').first().json.query.image_url || '';\nconst chatId = $('Form Webhook1').first().json.query.chat_id || '';\n\nlet htmlContent = typeof html === 'string' ? html : JSON.stringify(html);\n\n// Replace placeholders\nhtmlContent = htmlContent.replace(/\\{\\{\\$json\\.image_url\\}\\}/g, imageUrl);\nhtmlContent = htmlContent.replace(/\\{\\{\\$json\\.chat_id\\}\\}/g, chatId);\n\nreturn [{ html: htmlContent }];"
+      },
+      "id": "f88904a3-b89b-45db-9f07-256d0386114c",
+      "name": "Replace Values1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1776,
+        1104
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "ffa96dbf-66c2-4e46-b016-e262283c10d1",
+      "name": "Show Form1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        1104
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "overlay-submit",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "65799925-936c-4ee8-96c9-479be181c2b2",
+      "name": "Submit Webhook1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        1328
+      ],
+      "webhookId": "35aec451-10cf-40b2-a68a-49f3dc446303"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json.body;\nconst cloudName = \"dz3cmaxnc\";\n\n// Build URL\nlet url = `https://res.cloudinary.com/${cloudName}/image/upload/`;\n\nconst text = data.text_content;\nconst size = data.font_size || 60;\nconst weight = data.font_weight || \"normal\";\nconst align = data.text_align || \"center\";\nconst color = data.text_color || \"ffffff\";\nconst arc = data.arc_curve || 0;\n\nconst encoded = encodeURIComponent(text);\nconst style = weight === \"normal\" ? \"\" : `_${weight}`;\n\nurl += `l_text:Arial_${size}${style}_${align}:${encoded},w_800,c_fit,co_rgb:${color}/`;\n\nif (data.stroke_enabled) {\n  url += `co_rgb:${data.stroke_color || \"000000\"},e_outline:${data.stroke_width || 5}/`;\n}\n\nif (data.shadow_enabled) {\n  url += `e_shadow:${data.shadow_strength || 50}/`;\n}\n\nif (arc != 0) {\n  url += `e_distort:arc:${arc}/`;\n}\n\nif (data.background_enabled) {\n  url += `b_rgb:${data.background_color || \"000000\"},o_${data.background_opacity || 80}/`;\n}\n\nconst pos = data.position || \"center\";\nconst x = data.x_offset || 0;\nconst y = data.y_offset || 0;\n\nurl += `fl_layer_apply,g_${pos}`;\nif (x != 0) url += `,x_${x}`;\nif (y != 0) url += `,y_${y}`;\nurl += `/`;\n\nif (data.media_type === \"video\") {\n  if (data.start_time) url += `so_${data.start_time}/`;\n  if (data.end_time) url += `eo_${data.end_time}/`;\n  if (data.fade_effect) url += `e_fade:1000/e_fade:-1000/`;\n}\n\nconst imgUrl = data.image_url;\nif (imgUrl && imgUrl.includes('http')) {\n  const pid = `fetch:${Buffer.from(imgUrl).toString('base64').replace(/=/g, '')}`;\n  url += pid;\n} else {\n  url += 'sample';\n}\n\nreturn [{\n  url: url,\n  chat_id: data.chat_id,\n  text: text\n}];"
+      },
+      "id": "0e392fb7-5bc5-442a-89e2-db9f94d175a9",
+      "name": "Build URL1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        1328
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendPhoto",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $json.chat_id }}"
+            },
+            {
+              "name": "photo",
+              "value": "={{ $json.url }}"
+            },
+            {
+              "name": "caption",
+              "value": "=✅ สร้างเสร็จแล้ว!\n\n📝 {{ $json.text }}\n🔗 {{ $json.url }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "802ad5f2-ea54-4d8c-b756-92c2ec514dff",
+      "name": "Send Photo1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1776,
+        1328
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true }",
+        "options": {}
+      },
+      "id": "9e509a8f-4e38-42e0-856c-4f8e02b6dee8",
+      "name": "Done1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        1328
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Form Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Get HTML1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get HTML1": {
+      "main": [
+        [
+          {
+            "node": "Replace Values1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Values1": {
+      "main": [
+        [
+          {
+            "node": "Show Form1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Submit Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Build URL1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build URL1": {
+      "main": [
+        [
+          {
+            "node": "Send Photo1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Photo1": {
+      "main": [
+        [
+          {
+            "node": "Done1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4e6b4920-9bc6-4e78-8373-69c7a72055de",
+  "meta": {
+    "instanceId": "f60c5e248de1b49fb44a1dabf6f5785aa82a044666c84503cb84648d45cc8e0b"
+  },
+  "id": "BrEps7QE3eBia4U4",
+  "tags": [
+    {
+      "updatedAt": "2025-11-08T14:00:09.906Z",
+      "createdAt": "2025-11-08T14:00:09.906Z",
+      "id": "iQ22m9t7SHafZdcm",
+      "name": "TEXT_OVERLAY_SIMPLE_FORM"
+    }
+  ]
+}

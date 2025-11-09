@@ -1,0 +1,1465 @@
+{
+  "name": "APIFY Facebook Ad Library Scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1rAFlwhtvKQUr60soudidfkX19rHz9e2uXkfHXTxzdOY",
+          "mode": "list",
+          "cachedResultName": "expenses",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rAFlwhtvKQUr60soudidfkX19rHz9e2uXkfHXTxzdOY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rAFlwhtvKQUr60soudidfkX19rHz9e2uXkfHXTxzdOY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "price": "={{ $json.pricingInfo.pricePerUnitUsd }}",
+            "used": "={{ $json.pricingInfo.pricingModel }}, {{ $json.statusMessage }}",
+            "node": "=apify",
+            "date": "={{$now.setZone(\"Asia/Bangkok\").format(\"dd/LL/yyyy HH:mm:ss\")}}",
+            "objective": "keep_data"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "node",
+              "displayName": "node",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "used",
+              "displayName": "used",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "price",
+              "displayName": "price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "objective",
+              "displayName": "objective",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        352,
+        480
+      ],
+      "id": "2fe05a28-4df5-4f52-95ef-69c850342473",
+      "name": "price_sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ANEyPhCaKnqWBtYV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch",
+        "useDataOfInput": 2
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        576,
+        576
+      ],
+      "id": "6b97cb7f-d20e-466c-b109-62b89cfaab07",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "P0pTzknZiBQqYDY0",
+          "mode": "list",
+          "cachedResultName": "page_list",
+          "cachedResultUrl": "/projects/90VGG0kDXkluSMHc/datatables/P0pTzknZiBQqYDY0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "facebookUrl": "={{ $json.facebookUrl }}",
+            "page_name": "={{ $json.title }}",
+            "ad_status": "=ad_status : {{ $json.ad_status }}\npageAdLibrary: is_business_page_active : {{ $json.pageAdLibrary.is_business_page_active }} : {{ $json.pageAdLibrary.id }}",
+            "pagedetail": "=title: {{ $json.title }}\npageName: {{ $json.pageName }}\nphone: {{ $json.phone }}\nintro: {{ $json.intro }}\nprofilePhoto: {{ $json.profilePhoto }}\n\ncreation_date: {{ $json.creation_date }}\nlike: {{ $json.likes }}\nfollowers: {{ $json.followers }}\nfollowings: {{ $json.followings }}\nrating: {{ $json.rating }}\ncategories: {{ $json.categories[0] }}: {{ $json.categories[1] }}\n\nmessenger: {{ $json.messenger }}\naddress: {{ $json.address }}\n\nwebsites: {{ $json.websites }}\naddressUrl: {{ $json.addressUrl }}\ncoverPhotoUrl: {{ $json.coverPhotoUrl }}\n\n"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "facebookUrl",
+              "displayName": "facebookUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "page_name",
+              "displayName": "page_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "pagedetail",
+              "displayName": "pagedetail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "post_details",
+              "displayName": "post_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "details_ad",
+              "displayName": "details_ad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "count_ad",
+              "displayName": "count_ad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "ad_status",
+              "displayName": "ad_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "optimizeBulk": true
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        800,
+        608
+      ],
+      "id": "81eeba23-2d38-408d-afd0-1c5b855d66cf",
+      "name": "Insert row"
+    },
+    {
+      "parameters": {
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "value": "4Hv5RhChiaDk6iwad",
+          "mode": "list",
+          "cachedResultName": "Facebook Pages Scraper (apify/facebook-pages-scraper)",
+          "cachedResultUrl": "https://console.apify.com/actors/4Hv5RhChiaDk6iwad/input"
+        },
+        "customBody": "={\n    \"startUrls\": [\n        {\n            \"url\": \"{{ $json.chatInput }}\"\n        }\n    ]\n}",
+        "timeout": 500
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        128,
+        576
+      ],
+      "id": "b6103a46-e1ed-474a-8503-e3462b45db2b",
+      "name": "Facebook Pages Scraper",
+      "credentials": {
+        "apifyApi": {
+          "id": "2GibDohsxEwjt02p",
+          "name": "linemind"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -80,
+        576
+      ],
+      "id": "89e95355-98ad-4b69-acc8-af8eec14e418",
+      "name": "When chat message received",
+      "webhookId": "7d28ab82-c41f-4acb-8d05-b5a888a195fd"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1rAFlwhtvKQUr60soudidfkX19rHz9e2uXkfHXTxzdOY",
+          "mode": "list",
+          "cachedResultName": "expenses",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rAFlwhtvKQUr60soudidfkX19rHz9e2uXkfHXTxzdOY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rAFlwhtvKQUr60soudidfkX19rHz9e2uXkfHXTxzdOY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "price": "={{ $json.pricingInfo.pricePerUnitUsd }}",
+            "used": "={{ $json.pricingInfo.pricingModel }}, {{ $json.statusMessage }}",
+            "node": "=apify",
+            "date": "={{$now.setZone(\"Asia/Bangkok\").format(\"dd/LL/yyyy HH:mm:ss\")}}",
+            "objective": "keep_data"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "node",
+              "displayName": "node",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "used",
+              "displayName": "used",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "price",
+              "displayName": "price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "objective",
+              "displayName": "objective",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1248,
+        288
+      ],
+      "id": "92bbf3a1-b4cc-4be5-bb13-59552578ff14",
+      "name": "price_sheet2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ANEyPhCaKnqWBtYV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch",
+        "useDataOfInput": 2
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1472,
+        384
+      ],
+      "id": "1a685613-4333-431c-838d-2e9efd156b4b",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "value": "KoJrdxJCTtpon81KY",
+          "mode": "list",
+          "cachedResultName": "Facebook Posts Scraper (apify/facebook-posts-scraper)",
+          "cachedResultUrl": "https://console.apify.com/actors/KoJrdxJCTtpon81KY/input"
+        },
+        "customBody": "={\n    \"captionText\": true,\n    \"resultsLimit\": 10,\n    \"startUrls\": [\n        {\n            \"url\": \"{{ $('Facebook Pages Scraper database').item.json.facebookUrl }}\"\n        }\n    ]\n}",
+        "timeout": 500
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        384
+      ],
+      "id": "7ba32cfc-16f6-441c-8177-20627bf0595c",
+      "name": "Facebook Posts Scraper",
+      "credentials": {
+        "apifyApi": {
+          "id": "QhMOsSqdxQQIf6df",
+          "name": "todxongdur"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Datasets",
+        "datasetId": "={{ $json.defaultDatasetId }}",
+        "offset": {},
+        "limit": 200
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        480
+      ],
+      "id": "8f7a9b1f-7edb-42c0-9615-900fcd423cb8",
+      "name": "Facebook Posts Scraper database",
+      "credentials": {
+        "apifyApi": {
+          "id": "QhMOsSqdxQQIf6df",
+          "name": "todxongdur"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Datasets",
+        "datasetId": "={{ $json.defaultDatasetId }}",
+        "limit": 200
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        352,
+        672
+      ],
+      "id": "b8abc751-6c43-4bb5-b367-87411081ab8c",
+      "name": "Facebook Pages Scraper database",
+      "credentials": {
+        "apifyApi": {
+          "id": "2GibDohsxEwjt02p",
+          "name": "linemind"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1rAFlwhtvKQUr60soudidfkX19rHz9e2uXkfHXTxzdOY",
+          "mode": "list",
+          "cachedResultName": "expenses",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rAFlwhtvKQUr60soudidfkX19rHz9e2uXkfHXTxzdOY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rAFlwhtvKQUr60soudidfkX19rHz9e2uXkfHXTxzdOY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "price": "={{ $json.pricingInfo.pricePerUnitUsd }}",
+            "used": "={{ $json.pricingInfo.pricingModel }}, {{ $json.statusMessage }}",
+            "node": "=apify",
+            "date": "={{$now.setZone(\"Asia/Bangkok\").format(\"dd/LL/yyyy HH:mm:ss\")}}",
+            "objective": "keep_data"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "node",
+              "displayName": "node",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "used",
+              "displayName": "used",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "price",
+              "displayName": "price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "objective",
+              "displayName": "objective",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1248,
+        672
+      ],
+      "id": "227b5c40-27f9-4b42-9997-c51dd0257807",
+      "name": "price_sheet3",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ANEyPhCaKnqWBtYV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch",
+        "useDataOfInput": 2
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1472,
+        768
+      ],
+      "id": "7c29b3dd-c13f-4b84-997f-ddc301101f02",
+      "name": "Merge3"
+    },
+    {
+      "parameters": {
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "value": "JJghSZmShuco4j9gJ",
+          "mode": "list",
+          "cachedResultName": "Facebook Ads Scraper (apify/facebook-ads-scraper)",
+          "cachedResultUrl": "https://console.apify.com/actors/JJghSZmShuco4j9gJ/input"
+        },
+        "customBody": "={\n    \"isDetailsPerAd\": true,\n    \"onlyTotal\": false,\n    \"resultsLimit\": 10,\n    \"startUrls\": [\n        {\n            \"url\": \"{{ $('Merge').item.json.facebookUrl }}\"\n        }\n    ],\n    \"activeStatus\": \"\"\n}",
+        "timeout": 500
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        768
+      ],
+      "id": "4c747e1e-bd32-438f-aab4-cfcf052ecdfd",
+      "name": "Facebook Ads Scraper",
+      "credentials": {
+        "apifyApi": {
+          "id": "LEjtyFkw0AKuSqCO",
+          "name": "tripletreeandyun"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "P0pTzknZiBQqYDY0",
+          "mode": "list",
+          "cachedResultName": "page_list",
+          "cachedResultUrl": "/projects/90VGG0kDXkluSMHc/datatables/P0pTzknZiBQqYDY0"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "post_details",
+              "condition": "isEmpty"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "post_details": "=best last post from {{ $json.insertedRows }} post\nmax_viewsCount: {{ $json.max_viewsCount }}\nmax_likes: {{ $json.max_likes }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "facebookUrl",
+              "displayName": "facebookUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "page_name",
+              "displayName": "page_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "pagedetail",
+              "displayName": "pagedetail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "post_details",
+              "displayName": "post_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "details_ad",
+              "displayName": "details_ad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "count_ad",
+              "displayName": "count_ad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "ad_status",
+              "displayName": "ad_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        2048,
+        448
+      ],
+      "id": "c9ecd07a-6b1d-4ea5-b069-be46b381209a",
+      "name": "merge data"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "zxMmnilvw6jDTUyq",
+          "mode": "list",
+          "cachedResultName": "ads_page_in_list",
+          "cachedResultUrl": "/projects/90VGG0kDXkluSMHc/datatables/zxMmnilvw6jDTUyq"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "page_name": "={{ $json.pageInfo.page.name }}",
+            "stasus_ads": "=mediatypet: {{ $json.snapshot.displayFormat }}\nPlatform: {{ $json.publisherPlatform }}\nctaText: {{ $json.snapshot.ctaText }}\nctaType: {{ $json.snapshot.ctaType }}",
+            "detail_ads": "=collationCount: {{ $json.collationCount }}\ninputUrl: {{ $json.inputUrl }}\ndisplayFormat: {{ $json.snapshot.displayFormat }}\ntext: {{ $json.snapshot.body.text }}\n\nisActive: {{ $json.isActive }}\nadArchiveID: {{ $json.adArchiveID }}\nstartDateFormatted: {{ $json.startDateFormatted }}\nendDateFormatted: {{ $json.endDateFormatted }}\nadArchiveId: {{ $json.adArchiveId }}\npublisherPlatform: {{ $json.publisherPlatform }}\ncollationId: {{ $json.collationId }}\n\nevent: {{ $json.snapshot.event }}\ncaption: {{ $json.snapshot.caption }}\nctaText: {{ $json.snapshot.ctaText }}\nctaType: {{ $json.snapshot.ctaType }}\n\nlink media:\n{{ $json.snapshot.videos[0].videoSdUrl }}\n{{ $json.snapshot.images[0].originalImageUrl }}|{{ $json.snapshot.images[1].originalImageUrl }}|{{ $json.snapshot.images[2].originalImageUrl }}|{{ $json.snapshot.images[3].originalImageUrl }}|{{ $json.snapshot.images[4].originalImageUrl }}",
+            "adArchiveID": "={{ $json.adArchiveID }}",
+            "facebookUrl": "={{ $json.inputUrl }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "facebookUrl",
+              "displayName": "facebookUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "page_name",
+              "displayName": "page_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "adArchiveID",
+              "displayName": "adArchiveID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "detail_ads",
+              "displayName": "detail_ads",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "stasus_ads",
+              "displayName": "stasus_ads",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "optimizeBulk": true
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1712,
+        768
+      ],
+      "id": "fdd0eb29-62d9-4f6a-a9fa-59e9b69e44fe",
+      "name": "ads"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "4PnmgRKeB2D19nrK",
+          "mode": "list",
+          "cachedResultName": "post_page_data",
+          "cachedResultUrl": "/projects/90VGG0kDXkluSMHc/datatables/4PnmgRKeB2D19nrK"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "post": "=postId : {{ $json.postId }}",
+            "time_post": "={{ $json.time }}",
+            "text": "={{ $json.text }}",
+            "Reactions_post": "=like: {{ $json.likes }}\nshares: {{ $json.shares }}\ntopReactionsCount: {{ $json.topReactionsCount }}\nisVideo: {{ $json.isVideo }}\nviewsCount: {{ $json.viewsCount }}\ncomment: {{ $json.comments }}",
+            "link": "={{ $json.topLevelUrl }}",
+            "type_media": "={{ $json.media[0].__typename }}{{ $json.media[1].__typename }}",
+            "facebookUrl": "={{ $json.facebookUrl }}",
+            "like": "={{ $json.likes }}",
+            "viewsCount": "={{ $json.viewsCount }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "facebookUrl",
+              "displayName": "facebookUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "post",
+              "displayName": "post",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "time_post",
+              "displayName": "time_post",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Reactions_post",
+              "displayName": "Reactions_post",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "type_media",
+              "displayName": "type_media",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "viewsCount",
+              "displayName": "viewsCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "like",
+              "displayName": "like",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "optimizeBulk": true
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1696,
+        384
+      ],
+      "id": "b3b5e614-d758-4ace-a862-9180bc075763",
+      "name": "post"
+    },
+    {
+      "parameters": {
+        "fieldsToSummarize": {
+          "values": [
+            {
+              "aggregation": "max",
+              "field": "viewsCount"
+            },
+            {
+              "aggregation": "max",
+              "field": "likes"
+            }
+          ]
+        },
+        "fieldsToSplitBy": "={{ $json.viewsCount }}{{ $json.likes }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.summarize",
+      "typeVersion": 1.1,
+      "position": [
+        1696,
+        592
+      ],
+      "id": "0b72a4e2-3e48-447a-970b-abe487e3a0f8",
+      "name": "Summarize"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {
+          "clashHandling": {
+            "values": {
+              "resolveClash": "addSuffix"
+            }
+          },
+          "includeUnpaired": false
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2480,
+        752
+      ],
+      "id": "ddd01c8c-21b2-423d-a511-2a59c0141304",
+      "name": "Merge4"
+    },
+    {
+      "parameters": {
+        "fieldsToSummarize": {
+          "values": [
+            {
+              "field": "inputUrl"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.summarize",
+      "typeVersion": 1.1,
+      "position": [
+        1712,
+        976
+      ],
+      "id": "41e92854-6cd5-4af0-b931-c8f5d4aa11ce",
+      "name": "Summarize1"
+    },
+    {
+      "parameters": {
+        "resource": "Datasets",
+        "datasetId": "={{ $json.defaultDatasetId }}",
+        "offset": {},
+        "limit": 200
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        864
+      ],
+      "id": "b65d8047-79a0-416c-bb8c-2fcc8e8c315a",
+      "name": "Facebook Ads Scraper database",
+      "credentials": {
+        "apifyApi": {
+          "id": "LEjtyFkw0AKuSqCO",
+          "name": "tripletreeandyun"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1888,
+        448
+      ],
+      "id": "7c3d7968-6830-4587-bd86-0312e44ad9cb",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1904,
+        864
+      ],
+      "id": "3c99eada-cff6-45e4-b078-c1706fc512d9",
+      "name": "Merge5"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "P0pTzknZiBQqYDY0",
+          "mode": "list",
+          "cachedResultName": "page_list",
+          "cachedResultUrl": "/projects/90VGG0kDXkluSMHc/datatables/P0pTzknZiBQqYDY0"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "facebookUrl",
+              "keyValue": "={{ $('Merge3').item.json.inputUrl }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "details_ad": "=today ads run: {{ $json.count_inputUrl }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "facebookUrl",
+              "displayName": "facebookUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "page_name",
+              "displayName": "page_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "pagedetail",
+              "displayName": "pagedetail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "post_details",
+              "displayName": "post_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "details_ad",
+              "displayName": "details_ad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "count_ad",
+              "displayName": "count_ad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "ad_status",
+              "displayName": "ad_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        2672,
+        768
+      ],
+      "id": "04fb3157-c426-460a-9e39-f1a724f18ee8",
+      "name": "Upsert row(s)"
+    },
+    {
+      "parameters": {
+        "chatId": "-1002924884874",
+        "text": "=# details:page\n{{ $json.pagedetail }}\n{{ $json.post_details }}\n\n{{ $json.details_ad }}\n{{ $json.ad_status }}",
+        "additionalFields": {
+          "appendAttribution": true
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2896,
+        768
+      ],
+      "id": "efadaaf9-0868-438d-be9d-47cf15949526",
+      "name": "Multi_Image_Sender",
+      "webhookId": "ca8fd077-4c97-4913-b176-d941d026d65e",
+      "credentials": {
+        "telegramApi": {
+          "id": "PcF40TlmPUCjg4dv",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "price_sheet": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Insert row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert row": {
+      "main": [
+        [
+          {
+            "node": "Facebook Posts Scraper",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Facebook Ads Scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facebook Pages Scraper": {
+      "main": [
+        [
+          {
+            "node": "Facebook Pages Scraper database",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "price_sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Facebook Pages Scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "price_sheet2": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facebook Posts Scraper": {
+      "main": [
+        [
+          {
+            "node": "Facebook Posts Scraper database",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "price_sheet2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facebook Posts Scraper database": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Facebook Pages Scraper database": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Summarize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "price_sheet3": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge3": {
+      "main": [
+        [
+          {
+            "node": "ads",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Summarize1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Facebook Ads Scraper": {
+      "main": [
+        [
+          {
+            "node": "price_sheet3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Facebook Ads Scraper database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "merge data": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ads": {
+      "main": [
+        [
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "post": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Summarize1": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge4": {
+      "main": [
+        [
+          {
+            "node": "Upsert row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facebook Ads Scraper database": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "merge data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge5": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Upsert row(s)": {
+      "main": [
+        [
+          {
+            "node": "Multi_Image_Sender",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "26d22cef-336e-481d-bf1e-f83c86074082",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f60c5e248de1b49fb44a1dabf6f5785aa82a044666c84503cb84648d45cc8e0b"
+  },
+  "id": "EGoXsM5lI8hhGNz3",
+  "tags": []
+}
