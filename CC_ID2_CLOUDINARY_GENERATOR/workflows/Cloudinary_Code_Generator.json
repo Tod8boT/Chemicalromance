@@ -1,0 +1,179 @@
+{
+  "name": "Cloudinary Code Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "CLOUDINARY_PARAMS_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "text_settings",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": []
+        },
+        "options": {}
+      },
+      "id": "google-sheets-reader",
+      "name": "Read Text Settings from Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [240, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google-sheets-oauth",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== PARAMETER MAPPING: Google Sheets → Cloudinary Parameters =====\n// CC_ID2: Cloudinary Code Generator - Parameter Mapper\n// Mission: แปลง text settings จาก sheets เป็น Cloudinary parameters\n\nconst items = $input.all();\nconst mappedParams = [];\n\nfor (const item of items) {\n  const data = item.json;\n  \n  // === TEXT LAYER 1 PARAMETERS ===\n  const text1Params = {\n    // Font settings\n    font_family: data.text1_font || 'Mitr',\n    font_size: parseInt(data.text1_size) || 80,\n    font_weight: data.text1_weight || 'bold',\n    text_align: data.text1_align || 'center',\n    \n    // Text content and color\n    text_content: data.text1_content || '',\n    text_color: (data.text1_color || '#FFFFFF').replace('#', ''),\n    \n    // Position (grid or coordinate)\n    position: data.text1_position || 'center', // north, south, center, etc.\n    x_offset: parseInt(data.text1_x) || 0,\n    y_offset: parseInt(data.text1_y) || 0,\n    \n    // Stroke/Border\n    stroke_enabled: data.text1_stroke === 'true' || data.text1_stroke === true,\n    stroke_color: (data.text1_stroke_color || '#000000').replace('#', ''),\n    stroke_width: parseInt(data.text1_stroke_width) || 5,\n    \n    // Shadow\n    shadow_enabled: data.text1_shadow === 'true' || data.text1_shadow === true,\n    shadow_strength: parseInt(data.text1_shadow_strength) || 50,\n    \n    // Arc Curve (-180 to 180)\n    arc_curve: parseFloat(data.text1_arc) || 0,\n    \n    // Background box\n    background_enabled: data.text1_bg === 'true' || data.text1_bg === true,\n    background_color: (data.text1_bg_color || '#000000').replace('#', ''),\n    background_opacity: parseInt(data.text1_bg_opacity) || 80,\n    \n    // Constraints\n    max_width: parseInt(data.text1_max_width) || 900\n  };\n  \n  // === TEXT LAYER 2 PARAMETERS (if enabled) ===\n  const text2Params = data.text2_enabled ? {\n    font_family: data.text2_font || 'Arial',\n    font_size: parseInt(data.text2_size) || 50,\n    font_weight: data.text2_weight || 'normal',\n    text_align: data.text2_align || 'center',\n    text_content: data.text2_content || '',\n    text_color: (data.text2_color || '#FFFFFF').replace('#', ''),\n    position: data.text2_position || 'south',\n    x_offset: parseInt(data.text2_x) || 0,\n    y_offset: parseInt(data.text2_y) || 50,\n    arc_curve: parseFloat(data.text2_arc) || 0,\n    max_width: parseInt(data.text2_max_width) || 800\n  } : null;\n  \n  // === TEXT LAYER 3 PARAMETERS (if enabled) ===\n  const text3Params = data.text3_enabled ? {\n    font_family: data.text3_font || 'Arial',\n    font_size: parseInt(data.text3_size) || 40,\n    font_weight: data.text3_weight || 'normal',\n    text_align: data.text3_align || 'center',\n    text_content: data.text3_content || '',\n    text_color: (data.text3_color || '#FFFFFF').replace('#', ''),\n    position: data.text3_position || 'north',\n    x_offset: parseInt(data.text3_x) || 0,\n    y_offset: parseInt(data.text3_y) || 50,\n    max_width: parseInt(data.text3_max_width) || 700\n  } : null;\n  \n  // === CLOUDINARY PARAMETER MAPPING ===\n  const cloudinaryParams = {\n    // Layer 1 (required)\n    layer1: {\n      // l_text:{font}_{size}_{weight}_{align}:{encoded_text}\n      text_layer: `l_text:${text1Params.font_family}_${text1Params.font_size}_${text1Params.font_weight}_${text1Params.text_align}:${encodeURIComponent(text1Params.text_content)}`,\n      \n      // w_{width},c_fit\n      width_constraint: `w_${text1Params.max_width},c_fit`,\n      \n      // co_rgb:{color}\n      color: `co_rgb:${text1Params.text_color}`,\n      \n      // co_rgb:{stroke_color},e_outline:{width} (if enabled)\n      stroke: text1Params.stroke_enabled ? `co_rgb:${text1Params.stroke_color},e_outline:${text1Params.stroke_width}` : null,\n      \n      // e_shadow:{strength} (if enabled)\n      shadow: text1Params.shadow_enabled ? `e_shadow:${text1Params.shadow_strength}` : null,\n      \n      // e_distort:arc:{angle}\n      arc: text1Params.arc_curve !== 0 ? `e_distort:arc:${text1Params.arc_curve.toFixed(1)}` : null,\n      \n      // b_rgb:{color},o_{opacity} (if background enabled)\n      background: text1Params.background_enabled ? `b_rgb:${text1Params.background_color},o_${text1Params.background_opacity}` : null,\n      \n      // fl_layer_apply,g_{position},x_{offset},y_{offset}\n      layer_apply: `fl_layer_apply,g_${text1Params.position}` + \n                    (text1Params.x_offset !== 0 ? `,x_${text1Params.x_offset}` : '') +\n                    (text1Params.y_offset !== 0 ? `,y_${text1Params.y_offset}` : '')\n    },\n    \n    // Layer 2 (optional)\n    layer2: text2Params ? {\n      text_layer: `l_text:${text2Params.font_family}_${text2Params.font_size}_${text2Params.font_weight}_${text2Params.text_align}:${encodeURIComponent(text2Params.text_content)}`,\n      width_constraint: `w_${text2Params.max_width},c_fit`,\n      color: `co_rgb:${text2Params.text_color}`,\n      arc: text2Params.arc_curve !== 0 ? `e_distort:arc:${text2Params.arc_curve.toFixed(1)}` : null,\n      layer_apply: `fl_layer_apply,g_${text2Params.position}` + \n                    (text2Params.x_offset !== 0 ? `,x_${text2Params.x_offset}` : '') +\n                    (text2Params.y_offset !== 0 ? `,y_${text2Params.y_offset}` : '')\n    } : null,\n    \n    // Layer 3 (optional)\n    layer3: text3Params ? {\n      text_layer: `l_text:${text3Params.font_family}_${text3Params.font_size}_${text3Params.font_weight}_${text3Params.text_align}:${encodeURIComponent(text3Params.text_content)}`,\n      width_constraint: `w_${text3Params.max_width},c_fit`,\n      color: `co_rgb:${text3Params.text_color}`,\n      layer_apply: `fl_layer_apply,g_${text3Params.position}` + \n                    (text3Params.x_offset !== 0 ? `,x_${text3Params.x_offset}` : '') +\n                    (text3Params.y_offset !== 0 ? `,y_${text3Params.y_offset}` : '')\n    } : null\n  };\n  \n  mappedParams.push({\n    row_id: data.id || 'unknown',\n    original_settings: {\n      text1: text1Params,\n      text2: text2Params,\n      text3: text3Params\n    },\n    cloudinary_parameters: cloudinaryParams,\n    mapping_timestamp: new Date().toISOString()\n  });\n}\n\nreturn mappedParams;"
+      },
+      "id": "parameter-mapper",
+      "name": "Map Settings to Cloudinary Parameters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== URL BUILDER: Cloudinary Parameters → Complete URLs =====\n// CC_ID2: Cloudinary Code Generator - URL Builder\n// Mission: สร้าง complete Cloudinary transformation URLs (3 layers)\n\nconst items = $input.all();\nconst cloudName = 'dz3cmaxnc';\nconst results = [];\n\nfor (const item of items) {\n  const params = item.json.cloudinary_parameters;\n  \n  // === BUILD TRANSFORMATION STRING ===\n  let transformationParts = [];\n  \n  // === LAYER 1 (Required) ===\n  if (params.layer1) {\n    const l1 = params.layer1;\n    const layer1Parts = [\n      l1.text_layer,\n      l1.width_constraint,\n      l1.color,\n      l1.stroke,\n      l1.shadow,\n      l1.arc,\n      l1.background,\n      l1.layer_apply\n    ].filter(p => p !== null);\n    \n    transformationParts.push(layer1Parts.join(','));\n  }\n  \n  // === LAYER 2 (Optional) ===\n  if (params.layer2) {\n    const l2 = params.layer2;\n    const layer2Parts = [\n      l2.text_layer,\n      l2.width_constraint,\n      l2.color,\n      l2.arc,\n      l2.layer_apply\n    ].filter(p => p !== null);\n    \n    transformationParts.push(layer2Parts.join(','));\n  }\n  \n  // === LAYER 3 (Optional) ===\n  if (params.layer3) {\n    const l3 = params.layer3;\n    const layer3Parts = [\n      l3.text_layer,\n      l3.width_constraint,\n      l3.color,\n      l3.layer_apply\n    ].filter(p => p !== null);\n    \n    transformationParts.push(layer3Parts.join(','));\n  }\n  \n  // === JOIN ALL LAYERS ===\n  const transformationString = transformationParts.join('/');\n  \n  // === BUILD COMPLETE URL TEMPLATE ===\n  // Format: https://res.cloudinary.com/{cloud}/image/upload/{transformations}/{image_id}\n  const urlTemplate = `https://res.cloudinary.com/${cloudName}/image/upload/${transformationString}/`;\n  \n  // === BUILD EXAMPLE URLS (with sample images) ===\n  const exampleUrls = {\n    with_sample: `${urlTemplate}sample.jpg`,\n    with_placeholder: `${urlTemplate}{IMAGE_PUBLIC_ID}`,\n    with_fetch: `${urlTemplate}f_auto/{ENCODED_IMAGE_URL}`\n  };\n  \n  results.push({\n    row_id: item.json.row_id,\n    transformation_string: transformationString,\n    url_template: urlTemplate,\n    example_urls: exampleUrls,\n    breakdown: {\n      layer1_params: params.layer1 ? Object.keys(params.layer1).filter(k => params.layer1[k] !== null) : [],\n      layer2_params: params.layer2 ? Object.keys(params.layer2).filter(k => params.layer2[k] !== null) : [],\n      layer3_params: params.layer3 ? Object.keys(params.layer3).filter(k => params.layer3[k] !== null) : []\n    },\n    character_count: transformationString.length,\n    layer_count: [params.layer1, params.layer2, params.layer3].filter(l => l !== null).length,\n    build_timestamp: new Date().toISOString()\n  });\n}\n\nreturn results;"
+      },
+      "id": "url-builder",
+      "name": "Build Cloudinary URLs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== URL VALIDATOR: Validate Cloudinary URL Format =====\n// CC_ID2: Cloudinary Code Generator - URL Validator\n// Mission: ตรวจสอบ URL format ถูกต้องตาม Cloudinary spec\n\nconst items = $input.all();\nconst validationResults = [];\n\nfor (const item of items) {\n  const url = item.json.url_template;\n  const transformation = item.json.transformation_string;\n  \n  // === VALIDATION RULES ===\n  const validations = {\n    // 1. URL structure\n    has_cloud_name: url.includes('res.cloudinary.com/dz3cmaxnc'),\n    has_upload_path: url.includes('/image/upload/'),\n    \n    // 2. Text layer syntax\n    has_text_layer: transformation.includes('l_text:'),\n    valid_text_syntax: /l_text:[A-Za-z]+_\\d+_[a-z]+_[a-z]+:/.test(transformation),\n    \n    // 3. Layer apply\n    has_layer_apply: transformation.includes('fl_layer_apply'),\n    has_gravity: transformation.includes('g_'),\n    \n    // 4. Color format\n    valid_color_format: /co_rgb:[0-9A-Fa-f]{6}/.test(transformation),\n    \n    // 5. Arc curve (if present)\n    valid_arc_format: !transformation.includes('e_distort:arc:') || /e_distort:arc:-?\\d+\\.?\\d*/.test(transformation),\n    \n    // 6. Width constraint\n    has_width_constraint: transformation.includes('w_'),\n    \n    // 7. URL encoding\n    properly_encoded: !transformation.includes(' ') && !transformation.includes('ภาษาไทย'),\n    \n    // 8. Character limit (Cloudinary supports up to 2000 chars)\n    within_char_limit: transformation.length <= 2000\n  };\n  \n  // === CALCULATE VALIDATION SCORE ===\n  const totalChecks = Object.keys(validations).length;\n  const passedChecks = Object.values(validations).filter(v => v === true).length;\n  const validationScore = (passedChecks / totalChecks * 100).toFixed(1);\n  \n  // === CHECK FOR COMMON ERRORS ===\n  const errors = [];\n  const warnings = [];\n  \n  if (!validations.has_text_layer) errors.push('Missing text layer (l_text:)');\n  if (!validations.valid_text_syntax) errors.push('Invalid text layer syntax');\n  if (!validations.has_layer_apply) errors.push('Missing layer apply (fl_layer_apply)');\n  if (!validations.has_gravity) warnings.push('Missing gravity position (g_)');\n  if (!validations.valid_color_format) errors.push('Invalid color format (should be co_rgb:RRGGBB)');\n  if (!validations.valid_arc_format) errors.push('Invalid arc format');\n  if (!validations.within_char_limit) errors.push('URL too long (>2000 chars)');\n  if (!validations.properly_encoded) errors.push('Text not properly URL encoded');\n  \n  // === DETERMINE STATUS ===\n  let status = 'valid';\n  if (errors.length > 0) status = 'invalid';\n  else if (warnings.length > 0) status = 'warning';\n  \n  validationResults.push({\n    row_id: item.json.row_id,\n    url_template: url,\n    transformation_string: transformation,\n    validation: {\n      status: status,\n      score: parseFloat(validationScore),\n      passed_checks: passedChecks,\n      total_checks: totalChecks,\n      details: validations,\n      errors: errors,\n      warnings: warnings\n    },\n    recommendations: [\n      errors.length === 0 ? '✅ URL format is valid' : '❌ Fix errors before using',\n      transformation.length > 1500 ? '⚠️ URL is long, consider simplifying' : null,\n      item.json.layer_count === 3 ? '✅ All 3 text layers configured' : `ℹ️ Using ${item.json.layer_count} layer(s)`\n    ].filter(r => r !== null),\n    validated_at: new Date().toISOString()\n  });\n}\n\nreturn validationResults;"
+      },
+      "id": "url-validator",
+      "name": "Validate URL Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "CLOUDINARY_PARAMS_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "generated_urls",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_id": "={{ $json.row_id }}",
+            "url_template": "={{ $json.url_template }}",
+            "transformation_string": "={{ $json.transformation_string }}",
+            "validation_status": "={{ $json.validation.status }}",
+            "validation_score": "={{ $json.validation.score }}",
+            "errors": "={{ $json.validation.errors.join('; ') }}",
+            "warnings": "={{ $json.validation.warnings.join('; ') }}",
+            "layer_count": "={{ $('Build Cloudinary URLs').item.json.layer_count }}",
+            "generated_at": "={{ $json.validated_at }}"
+          },
+          "matchingColumns": ["row_id"]
+        },
+        "options": {}
+      },
+      "id": "write-to-sheet",
+      "name": "Write URLs to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1120, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google-sheets-oauth",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Read Text Settings from Sheet": {
+      "main": [
+        [
+          {
+            "node": "Map Settings to Cloudinary Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Settings to Cloudinary Parameters": {
+      "main": [
+        [
+          {
+            "node": "Build Cloudinary URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Cloudinary URLs": {
+      "main": [
+        [
+          {
+            "node": "Validate URL Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate URL Format": {
+      "main": [
+        [
+          {
+            "node": "Write URLs to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-11-09T00:00:00.000Z",
+      "updatedAt": "2025-11-09T00:00:00.000Z",
+      "id": "cc_id2",
+      "name": "CC_ID2"
+    },
+    {
+      "createdAt": "2025-11-09T00:00:00.000Z",
+      "updatedAt": "2025-11-09T00:00:00.000Z",
+      "id": "cloudinary",
+      "name": "cloudinary-generator"
+    }
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cc-id2-cloudinary-generator"
+  },
+  "id": "cloudinary-code-generator",
+  "versionId": "1.0.0"
+}
