@@ -1,0 +1,6 @@
+queue_id,content_type,content_url,caption,hashtags,campaign,status,priority,created_at,scheduled_time,created_by,has_arc_curve,arc_curve_angle,boost_score,notes
+Q001,image,https://example.com/image1.jpg,"วันนี้มีไอศกรีมรสใหม่!","#cremo,#icecream,#newflavo,#thailand,#dessert",10.10,scheduled,high,2025-11-09T10:00:00Z,2025-11-09T19:00:00Z,user123,true,45,92,Flash sale campaign
+Q002,image,https://example.com/image2.jpg,"ลองรสชาติใหม่กันหรือยัง?","#cremo,#thailand,#icecream,#food,#yummy",none,pending,normal,2025-11-09T11:30:00Z,2025-11-09T20:00:00Z,user456,true,30,78,Regular post
+Q003,video,https://example.com/video1.mp4,"Behind the scenes! 🎥","#cremo,#behindthescenes,#thailand,#production",christmas,draft,normal,2025-11-09T12:00:00Z,2025-12-20T18:00:00Z,user789,false,0,85,Christmas campaign prep
+Q004,image,https://example.com/image3.jpg,"Weekend special! 🎉","#cremo,#weekend,#icecream,#thailand,#dessert,#special",none,scheduled,urgent,2025-11-09T13:00:00Z,2025-11-09T12:30:00Z,user123,true,60,95,Urgent weekend promo
+Q005,carousel,https://example.com/carousel1.jpg,"ดูสินค้าทั้งหมดของเรา","#cremo,#products,#thailand,#icecream",none,pending,normal,2025-11-09T14:00:00Z,2025-11-10T19:00:00Z,user456,false,0,82,Product showcase

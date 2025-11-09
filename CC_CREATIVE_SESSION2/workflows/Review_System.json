@@ -1,0 +1,273 @@
+{
+  "name": "Review_System",
+  "description": "Content review and approval workflow for social media posts",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "review-request",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "review-webhook-trigger",
+      "name": "Review Request Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract review request data\nconst data = $input.first().json;\n\nconst reviewId = `REV_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;\nconst timestamp = new Date().toISOString();\n\nreturn [{\n  review_id: reviewId,\n  content_type: data.content_type || 'image',\n  content_url: data.content_url,\n  caption: data.caption,\n  hashtags: data.hashtags || [],\n  campaign: data.campaign || 'none',\n  created_by: data.user_id,\n  created_at: timestamp,\n  status: 'pending_review',\n  priority: data.priority || 'normal',\n  deadline: data.deadline || null,\n  chat_id: data.chat_id\n}];"
+      },
+      "id": "process-review-data",
+      "name": "Process Review Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "REVIEW_TRACKING_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Reviews",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "review_id": "={{ $json.review_id }}",
+            "content_type": "={{ $json.content_type }}",
+            "content_url": "={{ $json.content_url }}",
+            "caption": "={{ $json.caption }}",
+            "status": "={{ $json.status }}",
+            "created_at": "={{ $json.created_at }}",
+            "created_by": "={{ $json.created_by }}",
+            "priority": "={{ $json.priority }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "log-to-sheets",
+      "name": "Log to Review Tracking Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "=📋 Review Request Created\n\nID: {{ $json.review_id }}\nType: {{ $json.content_type }}\nStatus: {{ $json.status }}\n\nReviewers have been notified.",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "✅ Approve",
+                    "additionalFields": {
+                      "callback_data": "=approve_{{ $json.review_id }}"
+                    }
+                  },
+                  {
+                    "text": "❌ Reject",
+                    "additionalFields": {
+                      "callback_data": "=reject_{{ $json.review_id }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "✏️ Request Changes",
+                    "additionalFields": {
+                      "callback_data": "=changes_{{ $json.review_id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "send-review-request",
+      "name": "Send Review Request to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [900, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-bot-creds",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "={{ $json.chat_id }}",
+        "file": "={{ $json.content_url }}",
+        "caption": "=📸 Content for Review\n\nCaption: {{ $json.caption }}\n\nPlease review and approve/reject.",
+        "additionalFields": {}
+      },
+      "id": "send-content-preview",
+      "name": "Send Content Preview",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [900, 460],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-bot-creds",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "priority-check",
+              "leftValue": "={{ $json.priority }}",
+              "rightValue": "urgent",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-priority",
+      "name": "Check Priority",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 460]
+    },
+    {
+      "parameters": {
+        "chatId": "=ADMIN_CHAT_ID",
+        "text": "=🚨 URGENT REVIEW NEEDED\n\nReview ID: {{ $json.review_id }}\nPriority: {{ $json.priority }}\n\nImmediate attention required!",
+        "additionalFields": {}
+      },
+      "id": "notify-urgent",
+      "name": "Notify Urgent Review",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [900, 600],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-bot-creds",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, review_id: $json.review_id, status: $json.status } }}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Review Request Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process Review Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Review Data": {
+      "main": [
+        [
+          {
+            "node": "Log to Review Tracking Sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Review Tracking Sheet": {
+      "main": [
+        [
+          {
+            "node": "Send Review Request to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Review Request to Telegram": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Priority": {
+      "main": [
+        [
+          {
+            "node": "Notify Urgent Review",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Content Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "Manages content review workflow with approval/rejection system",
+    "features": [
+      "Review request creation",
+      "Google Sheets logging",
+      "Telegram notifications",
+      "Priority-based routing",
+      "Inline approval buttons"
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+review_id,content_type,content_url,caption,status,created_at,created_by,reviewed_by,reviewed_at,priority,feedback,action_taken,has_arc_curve,boost_score,final_status
+REV_001,image,https://example.com/review1.jpg,"โปรโมชั่นพิเศษ!",approved,2025-11-09T09:00:00Z,user123,reviewer1,2025-11-09T09:15:00Z,high,"Great use of arc curve text!",published,true,92,completed
+REV_002,image,https://example.com/review2.jpg,"ลองรสใหม่",pending_review,2025-11-09T10:30:00Z,user456,,,normal,"",none,true,78,in_review
+REV_003,video,https://example.com/review3.mp4,"Behind the scenes",changes_requested,2025-11-09T11:00:00Z,user789,reviewer2,2025-11-09T11:20:00Z,normal,"Add more captions for accessibility",revision_in_progress,false,85,in_progress
+REV_004,image,https://example.com/review4.jpg,"Weekend promo",approved,2025-11-09T12:00:00Z,user123,reviewer1,2025-11-09T12:10:00Z,urgent,"Perfect timing and excellent arc curve angle!",published,true,95,completed
+REV_005,carousel,https://example.com/review5.jpg,"Product lineup",rejected,2025-11-09T13:00:00Z,user456,reviewer3,2025-11-09T13:30:00Z,low,"Images quality too low, please reshoot",needs_revision,false,65,rejected
+REV_006,image,https://example.com/review6.jpg,"Daily special",approved,2025-11-09T14:00:00Z,user789,reviewer1,2025-11-09T14:15:00Z,normal,"Arc curve at 30° looks perfect for brand consistency",scheduled,true,88,approved
+REV_007,image,https://example.com/review7.jpg,"Flash sale NOW!",pending_review,2025-11-09T15:00:00Z,user123,,,urgent,"",none,true,90,in_review
