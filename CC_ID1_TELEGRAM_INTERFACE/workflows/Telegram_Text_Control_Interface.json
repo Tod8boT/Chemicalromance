@@ -1,0 +1,315 @@
+{
+  "name": "Telegram Text Control Interface",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message", "callback_query"]
+      },
+      "id": "telegram-webhook-trigger",
+      "name": "Telegram Trigger",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "telegram-text-control"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-callback-query",
+              "leftValue": "={{ $json.callback_query }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "route-message-type",
+      "name": "Route: Message or Callback",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle /start or /text commands\nconst message = $input.first().json.message || {};\nconst chatId = message.chat.id;\nconst text = message.text || '';\nconst userId = message.from.id;\n\n// Main menu keyboard\nconst mainMenu = {\n  inline_keyboard: [\n    [\n      { text: '📝 Text Set 1', callback_data: 'edit_text_1' },\n      { text: '📝 Text Set 2', callback_data: 'edit_text_2' },\n      { text: '📝 Text Set 3', callback_data: 'edit_text_3' }\n    ],\n    [\n      { text: '👁️ Preview Settings', callback_data: 'preview_all' },\n      { text: '💾 Save to Sheets', callback_data: 'save_to_sheets' }\n    ],\n    [\n      { text: '🗑️ Clear All', callback_data: 'clear_all' },\n      { text: 'ℹ️ Help', callback_data: 'help' }\n    ]\n  ]\n};\n\nreturn [{\n  chatId,\n  userId,\n  messageText: '🎨 **Text Overlay Control Panel**\\n\\n' +\n    'เลือก Text Set ที่ต้องการปรับแต่ง (รองรับ 3 ชุด):\\n\\n' +\n    '📝 Text Set 1-3: ตั้งค่าข้อความแต่ละชุด\\n' +\n    '👁️ Preview: ดูการตั้งค่าทั้งหมด\\n' +\n    '💾 Save: บันทึกลง Google Sheets',\n  replyMarkup: mainMenu\n}];"
+      },
+      "id": "handle-command",
+      "name": "Handle Command",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle callback queries (button clicks)\nconst callbackQuery = $input.first().json.callback_query || {};\nconst chatId = callbackQuery.message.chat.id;\nconst messageId = callbackQuery.message.message_id;\nconst userId = callbackQuery.from.id;\nconst callbackData = callbackQuery.data;\nconst callbackId = callbackQuery.id;\n\n// Parse callback data\nconst [action, ...params] = callbackData.split('_');\n\nlet response = {};\n\n// Route based on action\nif (callbackData.startsWith('edit_text_')) {\n  // Text set selection\n  const textSetNum = params[1]; // 1, 2, or 3\n  \n  response = {\n    chatId,\n    messageId,\n    userId,\n    textSetNum,\n    action: 'edit_text_set',\n    messageText: `📝 **Text Set ${textSetNum} Settings**\\n\\nเลือกส่วนที่ต้องการปรับแต่ง:`,\n    replyMarkup: {\n      inline_keyboard: [\n        [\n          { text: '✏️ Enter Text', callback_data: `input_text_${textSetNum}` }\n        ],\n        [\n          { text: '📏 Font Size', callback_data: `fontsize_${textSetNum}` },\n          { text: '📍 Position', callback_data: `position_${textSetNum}` }\n        ],\n        [\n          { text: '🎨 Text Color', callback_data: `color_${textSetNum}` },\n          { text: '🖍️ Stroke', callback_data: `stroke_${textSetNum}` }\n        ],\n        [\n          { text: '🌀 Arc Curve', callback_data: `arc_${textSetNum}` }\n        ],\n        [\n          { text: '🔙 Back to Menu', callback_data: 'main_menu' }\n        ]\n      ]\n    }\n  };\n} else if (callbackData.startsWith('fontsize_')) {\n  // Font size selection\n  const textSetNum = params[0];\n  \n  response = {\n    chatId,\n    messageId,\n    userId,\n    textSetNum,\n    action: 'select_fontsize',\n    messageText: `📏 **Font Size (Text Set ${textSetNum})**\\n\\nเลือกขนาดตัวอักษร:`,\n    replyMarkup: {\n      inline_keyboard: [\n        [\n          { text: 'Small (40px)', callback_data: `set_fontsize_${textSetNum}_40` },\n          { text: 'Medium (60px)', callback_data: `set_fontsize_${textSetNum}_60` },\n          { text: 'Large (80px)', callback_data: `set_fontsize_${textSetNum}_80` }\n        ],\n        [\n          { text: 'X-Large (100px)', callback_data: `set_fontsize_${textSetNum}_100` },\n          { text: 'XX-Large (120px)', callback_data: `set_fontsize_${textSetNum}_120` }\n        ],\n        [\n          { text: '🔙 Back', callback_data: `edit_text_${textSetNum}` }\n        ]\n      ]\n    }\n  };\n} else if (callbackData.startsWith('position_')) {\n  // Position grid\n  const textSetNum = params[0];\n  \n  response = {\n    chatId,\n    messageId,\n    userId,\n    textSetNum,\n    action: 'select_position',\n    messageText: `📍 **Position (Text Set ${textSetNum})**\\n\\nเลือกตำแหน่งข้อความ (3x3 grid):`,\n    replyMarkup: {\n      inline_keyboard: [\n        [\n          { text: '↖️', callback_data: `set_position_${textSetNum}_north_west` },\n          { text: '⬆️', callback_data: `set_position_${textSetNum}_north` },\n          { text: '↗️', callback_data: `set_position_${textSetNum}_north_east` }\n        ],\n        [\n          { text: '⬅️', callback_data: `set_position_${textSetNum}_west` },\n          { text: '🎯', callback_data: `set_position_${textSetNum}_center` },\n          { text: '➡️', callback_data: `set_position_${textSetNum}_east` }\n        ],\n        [\n          { text: '↙️', callback_data: `set_position_${textSetNum}_south_west` },\n          { text: '⬇️', callback_data: `set_position_${textSetNum}_south` },\n          { text: '↘️', callback_data: `set_position_${textSetNum}_south_east` }\n        ],\n        [\n          { text: '🔙 Back', callback_data: `edit_text_${textSetNum}` }\n        ]\n      ]\n    }\n  };\n} else if (callbackData.startsWith('color_')) {\n  // Color selection\n  const textSetNum = params[0];\n  \n  response = {\n    chatId,\n    messageId,\n    userId,\n    textSetNum,\n    action: 'select_color',\n    messageText: `🎨 **Text Color (Text Set ${textSetNum})**\\n\\nเลือกสี:`,\n    replyMarkup: {\n      inline_keyboard: [\n        [\n          { text: '⚪ White', callback_data: `set_color_${textSetNum}_FFFFFF` },\n          { text: '⚫ Black', callback_data: `set_color_${textSetNum}_000000` },\n          { text: '🔴 Red', callback_data: `set_color_${textSetNum}_FF0000` }\n        ],\n        [\n          { text: '🔵 Blue', callback_data: `set_color_${textSetNum}_0000FF` },\n          { text: '🟢 Green', callback_data: `set_color_${textSetNum}_00FF00` },\n          { text: '🟡 Yellow', callback_data: `set_color_${textSetNum}_FFDD17` }\n        ],\n        [\n          { text: '🟠 Orange', callback_data: `set_color_${textSetNum}_FF9A17` },\n          { text: '🟣 Purple', callback_data: `set_color_${textSetNum}_9B59B6` },\n          { text: '🟤 Brown', callback_data: `set_color_${textSetNum}_8B4513` }\n        ],\n        [\n          { text: '✏️ Custom Hex', callback_data: `input_color_${textSetNum}` }\n        ],\n        [\n          { text: '🔙 Back', callback_data: `edit_text_${textSetNum}` }\n        ]\n      ]\n    }\n  };\n} else if (callbackData.startsWith('stroke_')) {\n  // Stroke settings\n  const textSetNum = params[0];\n  \n  response = {\n    chatId,\n    messageId,\n    userId,\n    textSetNum,\n    action: 'select_stroke',\n    messageText: `🖍️ **Stroke Settings (Text Set ${textSetNum})**\\n\\nเลือกความหนาของขอบ:`,\n    replyMarkup: {\n      inline_keyboard: [\n        [\n          { text: '❌ No Stroke', callback_data: `set_stroke_${textSetNum}_0` }\n        ],\n        [\n          { text: 'Thin (3px)', callback_data: `set_stroke_${textSetNum}_3` },\n          { text: 'Medium (5px)', callback_data: `set_stroke_${textSetNum}_5` },\n          { text: 'Thick (8px)', callback_data: `set_stroke_${textSetNum}_8` }\n        ],\n        [\n          { text: 'X-Thick (12px)', callback_data: `set_stroke_${textSetNum}_12` },\n          { text: 'XX-Thick (15px)', callback_data: `set_stroke_${textSetNum}_15` }\n        ],\n        [\n          { text: '🎨 Stroke Color', callback_data: `strokecolor_${textSetNum}` }\n        ],\n        [\n          { text: '🔙 Back', callback_data: `edit_text_${textSetNum}` }\n        ]\n      ]\n    }\n  };\n} else if (callbackData.startsWith('arc_')) {\n  // Arc curve\n  const textSetNum = params[0];\n  \n  response = {\n    chatId,\n    messageId,\n    userId,\n    textSetNum,\n    action: 'select_arc',\n    messageText: `🌀 **Arc Curve (Text Set ${textSetNum})**\\n\\nเลือกมุมโค้ง (-180° ถึง 180°):`,\n    replyMarkup: {\n      inline_keyboard: [\n        [\n          { text: '-180°', callback_data: `set_arc_${textSetNum}_-180` },\n          { text: '-90°', callback_data: `set_arc_${textSetNum}_-90` },\n          { text: '-60°', callback_data: `set_arc_${textSetNum}_-60` }\n        ],\n        [\n          { text: '-30°', callback_data: `set_arc_${textSetNum}_-30` },\n          { text: '0° (Flat)', callback_data: `set_arc_${textSetNum}_0` },\n          { text: '+30°', callback_data: `set_arc_${textSetNum}_30` }\n        ],\n        [\n          { text: '+60°', callback_data: `set_arc_${textSetNum}_60` },\n          { text: '+90°', callback_data: `set_arc_${textSetNum}_90` },\n          { text: '+180°', callback_data: `set_arc_${textSetNum}_180` }\n        ],\n        [\n          { text: '✏️ Custom Value', callback_data: `input_arc_${textSetNum}` }\n        ],\n        [\n          { text: '🔙 Back', callback_data: `edit_text_${textSetNum}` }\n        ]\n      ]\n    }\n  };\n} else if (callbackData.startsWith('set_')) {\n  // Setting value selected\n  const [settingType, textSetNum, value] = params;\n  \n  response = {\n    chatId,\n    messageId,\n    userId,\n    textSetNum,\n    action: 'save_setting',\n    settingType,\n    value,\n    messageText: `✅ **Setting Updated**\\n\\nText Set ${textSetNum}\\n${settingType}: ${value}`,\n    alertText: `✅ ${settingType} set to ${value}`,\n    replyMarkup: {\n      inline_keyboard: [\n        [\n          { text: '🔙 Back to Settings', callback_data: `edit_text_${textSetNum}` },\n          { text: '🏠 Main Menu', callback_data: 'main_menu' }\n        ]\n      ]\n    }\n  };\n} else if (callbackData === 'preview_all') {\n  // Preview all settings\n  response = {\n    chatId,\n    messageId,\n    userId,\n    action: 'preview_settings',\n    messageText: '👁️ **Preview All Settings**\\n\\n' +\n      'กำลังโหลดการตั้งค่าจาก Google Sheets...',\n    replyMarkup: {\n      inline_keyboard: [\n        [\n          { text: '🔙 Back', callback_data: 'main_menu' }\n        ]\n      ]\n    }\n  };\n} else if (callbackData === 'save_to_sheets') {\n  // Save to Google Sheets\n  response = {\n    chatId,\n    messageId,\n    userId,\n    action: 'save_to_sheets',\n    messageText: '💾 **Saving to Google Sheets**\\n\\nกำลังบันทึกการตั้งค่าทั้งหมด...',\n    alertText: '💾 Saving settings...',\n    replyMarkup: null\n  };\n} else if (callbackData === 'main_menu') {\n  // Back to main menu\n  response = {\n    chatId,\n    messageId,\n    userId,\n    action: 'main_menu',\n    messageText: '🎨 **Text Overlay Control Panel**\\n\\n' +\n      'เลือก Text Set ที่ต้องการปรับแต่ง (รองรับ 3 ชุด):\\n\\n' +\n      '📝 Text Set 1-3: ตั้งค่าข้อความแต่ละชุด\\n' +\n      '👁️ Preview: ดูการตั้งค่าทั้งหมด\\n' +\n      '💾 Save: บันทึกลง Google Sheets',\n    replyMarkup: {\n      inline_keyboard: [\n        [\n          { text: '📝 Text Set 1', callback_data: 'edit_text_1' },\n          { text: '📝 Text Set 2', callback_data: 'edit_text_2' },\n          { text: '📝 Text Set 3', callback_data: 'edit_text_3' }\n        ],\n        [\n          { text: '👁️ Preview Settings', callback_data: 'preview_all' },\n          { text: '💾 Save to Sheets', callback_data: 'save_to_sheets' }\n        ],\n        [\n          { text: '🗑️ Clear All', callback_data: 'clear_all' },\n          { text: 'ℹ️ Help', callback_data: 'help' }\n        ]\n      ]\n    }\n  };\n}\n\nresponse.callbackId = callbackId;\n\nreturn [response];"
+      },
+      "id": "handle-callback",
+      "name": "Handle Callback Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 420]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"{{ $json.chatId }}\",\n  \"text\": \"{{ $json.messageText }}\",\n  \"parse_mode\": \"Markdown\",\n  \"reply_markup\": {{ $json.replyMarkup }}\n}",
+        "options": {}
+      },
+      "id": "send-message",
+      "name": "Send Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/editMessageText",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"{{ $json.chatId }}\",\n  \"message_id\": \"{{ $json.messageId }}\",\n  \"text\": \"{{ $json.messageText }}\",\n  \"parse_mode\": \"Markdown\",\n  \"reply_markup\": {{ $json.replyMarkup || 'null' }}\n}",
+        "options": {}
+      },
+      "id": "edit-message",
+      "name": "Edit Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 420]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/answerCallbackQuery",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"callback_query_id\": \"{{ $json.callbackId }}\",\n  \"text\": \"{{ $json.alertText || '' }}\",\n  \"show_alert\": false\n}",
+        "options": {}
+      },
+      "id": "answer-callback",
+      "name": "Answer Callback Query",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 540]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-save-action",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "save_setting",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        }
+      },
+      "id": "check-save-needed",
+      "name": "Check if Save Needed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 420]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEETS_TEXT_SETTINGS_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "text_settings",
+          "mode": "list",
+          "cachedResultName": "text_settings"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $json.userId }}",
+            "text_set": "={{ $json.textSetNum }}",
+            "setting_type": "={{ $json.settingType }}",
+            "value": "={{ $json.value }}",
+            "updated_at": "={{ $now }}"
+          }
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED",
+          "useAppend": false
+        }
+      },
+      "id": "save-to-sheets",
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1340, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_CRED_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEETS_TEXT_SETTINGS_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "text_settings",
+          "mode": "list",
+          "cachedResultName": "text_settings"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "column": "user_id",
+              "condition": "=",
+              "value": "={{ $json.userId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "load-from-sheets",
+      "name": "Load from Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1340, 540],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_CRED_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Route: Message or Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: Message or Callback": {
+      "main": [
+        [
+          {
+            "node": "Handle Callback Query",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Command": {
+      "main": [
+        [
+          {
+            "node": "Send Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Callback Query": {
+      "main": [
+        [
+          {
+            "node": "Edit Message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Answer Callback Query",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check if Save Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Save Needed": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-11-09T00:00:00.000Z",
+      "updatedAt": "2025-11-09T00:00:00.000Z",
+      "id": "telegram-interface",
+      "name": "telegram-interface"
+    },
+    {
+      "createdAt": "2025-11-09T00:00:00.000Z",
+      "updatedAt": "2025-11-09T00:00:00.000Z",
+      "id": "cc-id1",
+      "name": "cc-id1"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-11-09T00:00:00.000Z",
+  "versionId": "1.0.0",
+  "id": "telegram-text-control-interface",
+  "active": false
+}
