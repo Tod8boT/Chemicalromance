@@ -1,0 +1,256 @@
+{
+  "name": "Human_Campaign_Input",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "chat-trigger",
+      "name": "Campaign Input Chat",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [0, 400],
+      "webhookId": "campaign-input-webhook-001"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse human input for campaign details\nconst userInput = $input.first().json.chatInput;\n\n// Extract campaign info using simple parsing\nconst lines = userInput.split('\\n');\nconst campaign = {\n  campaign_id: `CAMP_${Date.now()}`,\n  timestamp: new Date().toISOString(),\n  raw_input: userInput,\n  parsed_data: {}\n};\n\n// Parse key-value pairs\nlines.forEach(line => {\n  if (line.includes(':')) {\n    const [key, ...valueParts] = line.split(':');\n    const value = valueParts.join(':').trim();\n    const cleanKey = key.trim().toLowerCase().replace(/\\s+/g, '_');\n    campaign.parsed_data[cleanKey] = value;\n  }\n});\n\n// Set defaults if missing\ncampaign.objective = campaign.parsed_data.objective || campaign.parsed_data.goal || 'Brand Awareness';\ncampaign.target_audience = campaign.parsed_data.target_audience || campaign.parsed_data.audience || 'General';\ncampaign.budget = campaign.parsed_data.budget || campaign.parsed_data.monthly_budget || 'Not specified';\ncampaign.timeline = campaign.parsed_data.timeline || campaign.parsed_data.duration || '1 month';\ncampaign.product_focus = campaign.parsed_data.product || campaign.parsed_data.product_focus || 'All products';\ncampaign.tone = campaign.parsed_data.tone || campaign.parsed_data.voice || 'Friendly';\ncampaign.region = campaign.parsed_data.region || campaign.parsed_data.location || 'Bangkok';\n\nreturn {\n  json: campaign\n};"
+      },
+      "id": "parse-input",
+      "name": "Parse Campaign Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [200, 400]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "GPT-4O-mini"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a campaign planning assistant for CREMO ice cream franchise.\n\nYour task:\n1. Review the campaign input from the human\n2. Extract and structure campaign parameters\n3. Suggest improvements or missing elements\n4. Return structured JSON\n\nOutput format:\n{\n  \"campaign_summary\": \"Brief description\",\n  \"objectives\": [\"obj1\", \"obj2\"],\n  \"target_segments\": [\n    {\n      \"segment\": \"name\",\n      \"demographics\": \"description\",\n      \"interests\": [\"interest1\", \"interest2\"]\n    }\n  ],\n  \"key_messages\": [\"message1\", \"message2\"],\n  \"content_pillars\": [\"pillar1\", \"pillar2\"],\n  \"success_metrics\": [\"metric1\", \"metric2\"],\n  \"recommendations\": [\"rec1\", \"rec2\"],\n  \"missing_info\": [\"what's missing\"]\n}"
+            },
+            {
+              "role": "user",
+              "content": "=Campaign Input:\n\nObjective: {{ $json.objective }}\nTarget Audience: {{ $json.target_audience }}\nBudget: {{ $json.budget }}\nTimeline: {{ $json.timeline }}\nProduct Focus: {{ $json.product_focus }}\nTone: {{ $json.tone }}\nRegion: {{ $json.region }}\n\nRaw Input:\n{{ $json.raw_input }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "temperature": 0.5,
+          "maxTokens": 1500
+        }
+      },
+      "id": "ai-campaign-planner",
+      "name": "AI Campaign Planner",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [400, 400],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CRED_ID",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "merge-campaign-data",
+      "name": "Merge Campaign Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [600, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combine parsed input with AI recommendations\nconst parsedData = $input.first().json;\nconst aiOutput = $input.last().json.message.content;\n\nconst finalCampaign = {\n  campaign_id: parsedData.campaign_id,\n  timestamp: parsedData.timestamp,\n  created_by: 'Human Input',\n  status: 'Draft',\n  \n  // Original input\n  input: {\n    objective: parsedData.objective,\n    target_audience: parsedData.target_audience,\n    budget: parsedData.budget,\n    timeline: parsedData.timeline,\n    product_focus: parsedData.product_focus,\n    tone: parsedData.tone,\n    region: parsedData.region,\n    raw_text: parsedData.raw_input\n  },\n  \n  // AI-enhanced data\n  ai_planning: aiOutput,\n  \n  // For Google Sheets\n  sheet_row: {\n    campaign_id: parsedData.campaign_id,\n    timestamp: parsedData.timestamp,\n    objective: parsedData.objective,\n    target_audience: parsedData.target_audience,\n    budget: parsedData.budget,\n    timeline: parsedData.timeline,\n    product_focus: parsedData.product_focus,\n    tone: parsedData.tone,\n    region: parsedData.region,\n    campaign_summary: aiOutput.campaign_summary || '',\n    objectives_json: JSON.stringify(aiOutput.objectives || []),\n    target_segments_json: JSON.stringify(aiOutput.target_segments || []),\n    key_messages_json: JSON.stringify(aiOutput.key_messages || []),\n    content_pillars_json: JSON.stringify(aiOutput.content_pillars || []),\n    success_metrics_json: JSON.stringify(aiOutput.success_metrics || []),\n    recommendations_json: JSON.stringify(aiOutput.recommendations || []),\n    missing_info_json: JSON.stringify(aiOutput.missing_info || []),\n    status: 'Draft'\n  }\n};\n\nreturn { json: finalCampaign };"
+      },
+      "id": "format-campaign",
+      "name": "Format Campaign Brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [800, 400]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Facebook Intelligence System"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Campaign_Briefs"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "campaign_id": "={{ $json.sheet_row.campaign_id }}",
+            "timestamp": "={{ $json.sheet_row.timestamp }}",
+            "objective": "={{ $json.sheet_row.objective }}",
+            "target_audience": "={{ $json.sheet_row.target_audience }}",
+            "budget": "={{ $json.sheet_row.budget }}",
+            "timeline": "={{ $json.sheet_row.timeline }}",
+            "product_focus": "={{ $json.sheet_row.product_focus }}",
+            "tone": "={{ $json.sheet_row.tone }}",
+            "region": "={{ $json.sheet_row.region }}",
+            "campaign_summary": "={{ $json.sheet_row.campaign_summary }}",
+            "objectives_json": "={{ $json.sheet_row.objectives_json }}",
+            "target_segments_json": "={{ $json.sheet_row.target_segments_json }}",
+            "key_messages_json": "={{ $json.sheet_row.key_messages_json }}",
+            "content_pillars_json": "={{ $json.sheet_row.content_pillars_json }}",
+            "success_metrics_json": "={{ $json.sheet_row.success_metrics_json }}",
+            "recommendations_json": "={{ $json.sheet_row.recommendations_json }}",
+            "missing_info_json": "={{ $json.sheet_row.missing_info_json }}",
+            "status": "={{ $json.sheet_row.status }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "save-to-sheets",
+      "name": "Save Campaign Brief",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [1000, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_CRED_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=✅ Campaign Brief Created!\n\n📋 **Campaign ID:** {{ $json.campaign_id }}\n🎯 **Objective:** {{ $json.input.objective }}\n👥 **Target:** {{ $json.input.target_audience }}\n💰 **Budget:** {{ $json.input.budget }}\n⏱️ **Timeline:** {{ $json.input.timeline }}\n\n📊 **AI Summary:**\n{{ $json.ai_planning.campaign_summary }}\n\n🎯 **Recommended Objectives:**\n{{ $json.ai_planning.objectives.join('\\n') }}\n\n💡 **Key Messages:**\n{{ $json.ai_planning.key_messages.join('\\n') }}\n\n⚠️ **Missing Info:**\n{{ $json.ai_planning.missing_info.join('\\n') || 'None - all set!' }}\n\n✨ Campaign brief saved to Google Sheets!\n🚀 Ready to generate content variations.",
+        "options": {}
+      },
+      "id": "respond-to-user",
+      "name": "Respond to User",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1200, 400]
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=🎯 **New Campaign Brief**\n\n**ID:** {{ $json.campaign_id }}\n**Objective:** {{ $json.input.objective }}\n**Target:** {{ $json.input.target_audience }}\n**Budget:** {{ $json.input.budget }}\n\n**Summary:** {{ $json.ai_planning.campaign_summary }}\n\n**Next:** Generate content variations",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "notify-team",
+      "name": "Notify Team",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1000, 500],
+      "webhookId": "campaign-notify-webhook",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CRED_ID",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Campaign Input Chat": {
+      "main": [
+        [
+          {
+            "node": "Parse Campaign Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Campaign Input": {
+      "main": [
+        [
+          {
+            "node": "AI Campaign Planner",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Campaign Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Campaign Planner": {
+      "main": [
+        [
+          {
+            "node": "Merge Campaign Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Campaign Data": {
+      "main": [
+        [
+          {
+            "node": "Format Campaign Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Campaign Brief": {
+      "main": [
+        [
+          {
+            "node": "Save Campaign Brief",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Team",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond to User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "new-human-campaign-input",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "cc-intel-human-input"
+  },
+  "id": "Human_Campaign_Input",
+  "tags": ["CC_INTEL", "Campaign", "Human_Input"]
+}
