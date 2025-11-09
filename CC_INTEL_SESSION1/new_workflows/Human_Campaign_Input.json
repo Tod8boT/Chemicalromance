@@ -170,6 +170,7 @@
       }
     }
   ],
+  "active": false,
   "connections": {
     "Campaign Input Chat": {
       "main": [
