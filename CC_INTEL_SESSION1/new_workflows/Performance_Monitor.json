@@ -1,0 +1,356 @@
+{
+  "name": "Performance_Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Daily Performance Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 400]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "data"
+        },
+        "options": {
+          "range": "A:Z"
+        }
+      },
+      "id": "read-apify-costs",
+      "name": "Read APIFY Cost Tracking",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [200, 200],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_CRED_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=5",
+          "mode": "list",
+          "cachedResultName": "Content_Stock"
+        },
+        "options": {
+          "range": "A:Z"
+        }
+      },
+      "id": "read-content-stock",
+      "name": "Read Content Stock",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [200, 400],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_CRED_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=1",
+          "mode": "list",
+          "cachedResultName": "AI_Analysis_Results"
+        },
+        "options": {
+          "range": "A:Z"
+        }
+      },
+      "id": "read-ai-results",
+      "name": "Read AI Analysis Results",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [200, 600],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_CRED_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "merge-all-data",
+      "name": "Merge All Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [400, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate performance metrics\nconst apifyCosts = [];\nconst contentItems = [];\nconst aiResults = [];\n\n// Parse all input data\nfor (const item of $input.all()) {\n  const json = item.json;\n  \n  // Identify data type by checking fields\n  if (json.node === 'apify' || json.price) {\n    apifyCosts.push(json);\n  } else if (json.content_id || json.variation_id) {\n    contentItems.push(json);\n  } else if (json.summary || json.rewritten_copy) {\n    aiResults.push(json);\n  }\n}\n\n// Calculate APIFY costs (last 30 days)\nconst thirtyDaysAgo = new Date();\nthirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);\n\nconst recentApifyCosts = apifyCosts.filter(item => {\n  if (!item.date) return false;\n  const itemDate = new Date(item.date);\n  return itemDate >= thirtyDaysAgo;\n});\n\nconst totalApifyCost = recentApifyCosts.reduce((sum, item) => {\n  return sum + (parseFloat(item.price) || 0);\n}, 0);\n\nconst avgApifyCostPerDay = totalApifyCost / 30;\n\n// Calculate content generation metrics (last 7 days)\nconst sevenDaysAgo = new Date();\nsevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);\n\nconst recentContent = contentItems.filter(item => {\n  if (!item.timestamp) return false;\n  const itemDate = new Date(item.timestamp);\n  return itemDate >= sevenDaysAgo;\n});\n\nconst contentByStatus = recentContent.reduce((acc, item) => {\n  const status = item.approval_status || 'Unknown';\n  acc[status] = (acc[status] || 0) + 1;\n  return acc;\n}, {});\n\nconst contentByFormat = recentContent.reduce((acc, item) => {\n  const format = item.format || 'Unknown';\n  acc[format] = (acc[format] || 0) + 1;\n  return acc;\n}, {});\n\n// Calculate AI usage (estimated OpenAI costs)\n// Assume: $0.03 per 1K tokens input, $0.06 per 1K tokens output\n// Average per content generation: ~2K tokens = $0.18\nconst aiContentCost = recentContent.length * 0.18;\nconst aiAnalysisCost = aiResults.length * 0.30;\nconst totalAiCost = aiContentCost + aiAnalysisCost;\n\n// Calculate totals\nconst monthlyProjectedCost = {\n  apify: totalApifyCost,\n  apify_daily_avg: avgApifyCostPerDay.toFixed(2),\n  openai_estimated: totalAiCost.toFixed(2),\n  total_estimated: (totalApifyCost + totalAiCost).toFixed(2),\n  budget_limit: 650,\n  budget_remaining: (650 - totalApifyCost - totalAiCost).toFixed(2),\n  budget_usage_percent: ((totalApifyCost + totalAiCost) / 650 * 100).toFixed(2)\n};\n\n// Performance metrics\nconst performance = {\n  period: 'Last 30 days',\n  timestamp: new Date().toISOString(),\n  \n  // Cost metrics\n  costs: monthlyProjectedCost,\n  \n  // Content metrics\n  content: {\n    total_generated_7d: recentContent.length,\n    by_status: contentByStatus,\n    by_format: contentByFormat,\n    avg_per_day: (recentContent.length / 7).toFixed(2)\n  },\n  \n  // AI metrics\n  ai_analysis: {\n    total_analyses: aiResults.length,\n    estimated_cost: totalAiCost.toFixed(2)\n  },\n  \n  // APIFY metrics\n  apify: {\n    total_calls_30d: recentApifyCosts.length,\n    total_cost_30d: totalApifyCost.toFixed(2),\n    avg_cost_per_call: (totalApifyCost / recentApifyCosts.length).toFixed(4)\n  },\n  \n  // Alerts\n  alerts: []\n};\n\n// Check for alerts\nif (monthlyProjectedCost.budget_usage_percent > 80) {\n  performance.alerts.push({\n    level: 'warning',\n    message: `Budget usage at ${monthlyProjectedCost.budget_usage_percent}% - approaching limit`\n  });\n}\n\nif (monthlyProjectedCost.budget_usage_percent > 95) {\n  performance.alerts.push({\n    level: 'critical',\n    message: `Budget usage at ${monthlyProjectedCost.budget_usage_percent}% - CRITICAL!`\n  });\n}\n\nif (recentContent.length === 0) {\n  performance.alerts.push({\n    level: 'info',\n    message: 'No content generated in last 7 days'\n  });\n}\n\nreturn { json: performance };"
+      },
+      "id": "calculate-metrics",
+      "name": "Calculate Performance Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 400]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=3",
+          "mode": "list",
+          "cachedResultName": "Performance_Tracking"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $json.timestamp }}",
+            "period": "={{ $json.period }}",
+            "apify_total_cost": "={{ $json.costs.apify }}",
+            "apify_daily_avg": "={{ $json.costs.apify_daily_avg }}",
+            "openai_estimated_cost": "={{ $json.costs.openai_estimated }}",
+            "total_estimated_cost": "={{ $json.costs.total_estimated }}",
+            "budget_limit": "={{ $json.costs.budget_limit }}",
+            "budget_remaining": "={{ $json.costs.budget_remaining }}",
+            "budget_usage_percent": "={{ $json.costs.budget_usage_percent }}",
+            "content_generated_7d": "={{ $json.content.total_generated_7d }}",
+            "content_avg_per_day": "={{ $json.content.avg_per_day }}",
+            "apify_calls_30d": "={{ $json.apify.total_calls_30d }}",
+            "ai_analyses": "={{ $json.ai_analysis.total_analyses }}",
+            "alerts": "={{ JSON.stringify($json.alerts) }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "save-performance",
+      "name": "Save Performance Report",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [800, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_CRED_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.alerts.length }}",
+              "value2": 0,
+              "operation": "largerThan"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "check-alerts",
+      "name": "Has Alerts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [800, 500]
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=⚠️ **Performance Alerts**\n\n{{ $json.alerts.map(a => `${a.level.toUpperCase()}: ${a.message}`).join('\\n') }}\n\n📊 **Current Status:**\n💰 Budget: {{ $json.costs.budget_usage_percent }}% used (฿{{ $json.costs.total_estimated }} / ฿{{ $json.costs.budget_limit }})\n📝 Content: {{ $json.content.total_generated_7d }} items (7 days)\n🤖 APIFY: {{ $json.apify.total_calls_30d }} calls (30 days)\n\nCheck full report:\nhttps://docs.google.com/spreadsheets/d/YOUR_SHEET_ID",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "send-alert",
+      "name": "Send Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1000, 400],
+      "webhookId": "performance-alert",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CRED_ID",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=✅ **Daily Performance Report**\n\n📊 **Budget Status:**\n💰 Used: ฿{{ $json.costs.total_estimated }} / ฿{{ $json.costs.budget_limit }} ({{ $json.costs.budget_usage_percent }}%)\n📈 Remaining: ฿{{ $json.costs.budget_remaining }}\n\n**Breakdown:**\n🔹 APIFY: ฿{{ $json.costs.apify }} ({{ $json.apify.total_calls_30d }} calls)\n🔹 OpenAI: ฿{{ $json.costs.openai_estimated }} (estimated)\n\n📝 **Content (7 days):**\n✨ Generated: {{ $json.content.total_generated_7d }} items\n📊 Avg/day: {{ $json.content.avg_per_day }}\n\n🤖 **AI Analysis:**\n🔍 Analyses: {{ $json.ai_analysis.total_analyses }}\n💵 Cost: ฿{{ $json.ai_analysis.estimated_cost }}\n\n✨ All systems operational!",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "send-daily-report",
+      "name": "Send Daily Report",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1000, 600],
+      "webhookId": "performance-daily",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CRED_ID",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily Performance Check": {
+      "main": [
+        [
+          {
+            "node": "Read APIFY Cost Tracking",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Content Stock",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read AI Analysis Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read APIFY Cost Tracking": {
+      "main": [
+        [
+          {
+            "node": "Merge All Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Content Stock": {
+      "main": [
+        [
+          {
+            "node": "Merge All Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Read AI Analysis Results": {
+      "main": [
+        [
+          {
+            "node": "Merge All Data",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge All Data": {
+      "main": [
+        [
+          {
+            "node": "Calculate Performance Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Performance Metrics": {
+      "main": [
+        [
+          {
+            "node": "Save Performance Report",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Has Alerts?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Alerts?": {
+      "main": [
+        [
+          {
+            "node": "Send Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "new-performance-monitor",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "cc-intel-performance-monitor"
+  },
+  "id": "Performance_Monitor",
+  "tags": ["CC_INTEL", "Performance", "Monitoring", "Budget"]
+}
