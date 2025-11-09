@@ -1,0 +1,257 @@
+{
+  "test_cases": [
+    {
+      "name": "Flash Sale - Thai Text",
+      "input": {
+        "image_url": "https://fal.media/files/lion/sample-image.jpg",
+        "text_content": "ลด 70% วันนี้!",
+        "template_id": "flash_sale",
+        "chat_id": "123456789",
+        "font_size": 90,
+        "text_color": "#FF0000",
+        "position": "north",
+        "arc_curve": -15,
+        "stroke_enabled": true,
+        "stroke_color": "#FFD700",
+        "stroke_width": 8,
+        "shadow_enabled": true,
+        "shadow_strength": 70
+      },
+      "expected_transformation": "w_1080,h_1080,c_fill/l_text:Mitr_90_bold:%E0%B8%A5%E0%B8%94%2070%25%20%E0%B8%A7%E0%B8%B1%E0%B8%99%E0%B8%99%E0%B8%B5%E0%B9%89!,co_rgb:FF0000,w_900,c_fit/co_rgb:FFD700,e_outline:8/e_shadow:70/e_distort:arc:-15/fl_layer_apply,g_north/f_auto,q_auto"
+    },
+    {
+      "name": "Success Story - English Text",
+      "input": {
+        "image_url": "https://fal.media/files/lion/business-owner.jpg",
+        "text_content": "Success Story",
+        "template_id": "success_story",
+        "chat_id": "123456789",
+        "font_size": 80,
+        "text_color": "#FFFFFF",
+        "position": "center",
+        "arc_curve": 30,
+        "stroke_enabled": true,
+        "stroke_color": "#000000",
+        "stroke_width": 5,
+        "shadow_enabled": false,
+        "shadow_strength": 0
+      },
+      "expected_transformation": "w_1080,h_1080,c_fill/l_text:Mitr_80_bold:Success%20Story,co_rgb:FFFFFF,w_900,c_fit/co_rgb:000000,e_outline:5/e_distort:arc:30/fl_layer_apply,g_center/f_auto,q_auto"
+    },
+    {
+      "name": "Community Moments - Long Thai Text",
+      "input": {
+        "image_url": "https://fal.media/files/lion/community.jpg",
+        "text_content": "มาร่วมเป็นส่วนหนึ่งของชุมชนของเรา",
+        "template_id": "community_moments",
+        "chat_id": "123456789",
+        "font_size": 60,
+        "text_color": "#17539F",
+        "position": "south",
+        "arc_curve": 0,
+        "stroke_enabled": true,
+        "stroke_color": "#FFFFFF",
+        "stroke_width": 6,
+        "shadow_enabled": true,
+        "shadow_strength": 50
+      }
+    },
+    {
+      "name": "Product Demo - Simple Text",
+      "input": {
+        "image_url": "https://fal.media/files/lion/freezer-display.jpg",
+        "text_content": "CREMO Freezer",
+        "template_id": "product_demo",
+        "chat_id": "123456789",
+        "font_size": 70,
+        "text_color": "#FFD700",
+        "position": "north_west",
+        "arc_curve": 0,
+        "stroke_enabled": false,
+        "stroke_color": "#000000",
+        "stroke_width": 0,
+        "shadow_enabled": true,
+        "shadow_strength": 60
+      }
+    },
+    {
+      "name": "Curved Banner - Extreme Arc",
+      "input": {
+        "image_url": "https://fal.media/files/lion/banner.jpg",
+        "text_content": "โปรโมชั่นสุดพิเศษ!",
+        "template_id": "banner",
+        "chat_id": "123456789",
+        "font_size": 100,
+        "text_color": "#FFDD17",
+        "position": "center",
+        "arc_curve": 60,
+        "stroke_enabled": true,
+        "stroke_color": "#3B5998",
+        "stroke_width": 10,
+        "shadow_enabled": true,
+        "shadow_strength": 80
+      }
+    },
+    {
+      "name": "Minimal Text - No Effects",
+      "input": {
+        "image_url": "https://fal.media/files/lion/minimal.jpg",
+        "text_content": "Clean Design",
+        "template_id": "minimal",
+        "chat_id": "123456789",
+        "font_size": 50,
+        "text_color": "#000000",
+        "position": "south_east",
+        "arc_curve": 0,
+        "stroke_enabled": false,
+        "stroke_color": "#FFFFFF",
+        "stroke_width": 0,
+        "shadow_enabled": false,
+        "shadow_strength": 0
+      }
+    }
+  ],
+  "google_sheets_templates": [
+    {
+      "template_id": "flash_sale",
+      "position": "north",
+      "font_size": 90,
+      "font_family": "Mitr",
+      "color": "#FF0000",
+      "stroke_enabled": true,
+      "stroke_color": "#FFD700",
+      "stroke_width": 8,
+      "shadow_enabled": true,
+      "shadow_strength": 70,
+      "arc": -15,
+      "bg_enabled": false,
+      "bg_color": "#000000",
+      "bg_opacity": 0,
+      "x_offset": 0,
+      "y_offset": 50,
+      "max_width": 950
+    },
+    {
+      "template_id": "success_story",
+      "position": "center",
+      "font_size": 80,
+      "font_family": "Mitr",
+      "color": "#FFFFFF",
+      "stroke_enabled": true,
+      "stroke_color": "#000000",
+      "stroke_width": 5,
+      "shadow_enabled": true,
+      "shadow_strength": 50,
+      "arc": 30,
+      "bg_enabled": true,
+      "bg_color": "#17539F",
+      "bg_opacity": 60,
+      "x_offset": 0,
+      "y_offset": 0,
+      "max_width": 800
+    },
+    {
+      "template_id": "community_moments",
+      "position": "south",
+      "font_size": 60,
+      "font_family": "Mitr",
+      "color": "#17539F",
+      "stroke_enabled": true,
+      "stroke_color": "#FFFFFF",
+      "stroke_width": 6,
+      "shadow_enabled": true,
+      "shadow_strength": 50,
+      "arc": 0,
+      "bg_enabled": false,
+      "bg_color": "#FFFFFF",
+      "bg_opacity": 0,
+      "x_offset": 0,
+      "y_offset": 40,
+      "max_width": 900
+    },
+    {
+      "template_id": "product_demo",
+      "position": "north_west",
+      "font_size": 70,
+      "font_family": "Mitr",
+      "color": "#FFD700",
+      "stroke_enabled": true,
+      "stroke_color": "#000000",
+      "stroke_width": 4,
+      "shadow_enabled": true,
+      "shadow_strength": 60,
+      "arc": 0,
+      "bg_enabled": false,
+      "bg_color": "#000000",
+      "bg_opacity": 0,
+      "x_offset": 30,
+      "y_offset": 30,
+      "max_width": 700
+    }
+  ],
+  "cloudinary_url_examples": {
+    "basic_text": "https://res.cloudinary.com/dz3cmaxnc/image/upload/w_1080,h_1080,c_fill/l_text:Mitr_80_bold:Hello,co_rgb:FFFFFF,w_900,c_fit/fl_layer_apply,g_center/f_auto,q_auto/https%3A%2F%2Ffal.media%2Ffiles%2Flion%2Fsample.jpg",
+    "text_with_stroke": "https://res.cloudinary.com/dz3cmaxnc/image/upload/w_1080,h_1080,c_fill/l_text:Mitr_80_bold:Hello,co_rgb:FFFFFF,w_900,c_fit/co_rgb:000000,e_outline:5/fl_layer_apply,g_center/f_auto,q_auto/https%3A%2F%2Ffal.media%2Ffiles%2Flion%2Fsample.jpg",
+    "curved_text": "https://res.cloudinary.com/dz3cmaxnc/image/upload/w_1080,h_1080,c_fill/l_text:Mitr_80_bold:Hello,co_rgb:FFFFFF,w_900,c_fit/e_distort:arc:30/fl_layer_apply,g_center/f_auto,q_auto/https%3A%2F%2Ffal.media%2Ffiles%2Flion%2Fsample.jpg",
+    "thai_text": "https://res.cloudinary.com/dz3cmaxnc/image/upload/w_1080,h_1080,c_fill/l_text:Mitr_90_bold:%E0%B8%AA%E0%B8%A7%E0%B8%B1%E0%B8%AA%E0%B8%94%E0%B8%B5,co_rgb:FFD700,w_900,c_fit/co_rgb:000000,e_outline:5/e_shadow:70/fl_layer_apply,g_north/f_auto,q_auto/https%3A%2F%2Ffal.media%2Ffiles%2Flion%2Fsample.jpg"
+  },
+  "encoding_reference": {
+    "thai_characters": {
+      "ก": "%E0%B8%81",
+      "ข": "%E0%B8%82",
+      "ค": "%E0%B8%84",
+      "ง": "%E0%B8%87",
+      "จ": "%E0%B8%88",
+      "ช": "%E0%B8%8A",
+      "ซ": "%E0%B8%8B",
+      "ด": "%E0%B8%94",
+      "ต": "%E0%B8%95",
+      "ท": "%E0%B8%97",
+      "น": "%E0%B8%99",
+      "บ": "%E0%B8%9A",
+      "ป": "%E0%B8%9B",
+      "ผ": "%E0%B8%9C",
+      "พ": "%E0%B8%9E",
+      "ม": "%E0%B8%A1",
+      "ย": "%E0%B8%A2",
+      "ร": "%E0%B8%A3",
+      "ล": "%E0%B8%A5",
+      "ว": "%E0%B8%A7",
+      "ส": "%E0%B8%AA",
+      "ห": "%E0%B8%AB",
+      "อ": "%E0%B8%AD",
+      "า": "%E0%B8%B2",
+      "ิ": "%E0%B8%B4",
+      "ี": "%E0%B8%B5",
+      "ื": "%E0%B8%B7",
+      "ุ": "%E0%B8%B8",
+      "ู": "%E0%B8%B9",
+      "เ": "%E0%B9%80",
+      "แ": "%E0%B9%81",
+      "โ": "%E0%B9%82",
+      "ไ": "%E0%B9%84",
+      "ใ": "%E0%B9%83",
+      "้": "%E0%B9%89",
+      "์": "%E0%B9%8C"
+    },
+    "special_characters": {
+      " ": "%20",
+      "!": "!",
+      "%": "%25",
+      "&": "%26",
+      "#": "%23",
+      "+": "%2B",
+      "=": "%3D"
+    }
+  },
+  "webhook_test_urls": {
+    "display_form": "https://your-n8n-domain.com/webhook/text-overlay?image_url=https%3A%2F%2Ffal.media%2Ffiles%2Flion%2Fsample.jpg&chat_id=123456789",
+    "submit_form": "https://your-n8n-domain.com/webhook/text-overlay-submit"
+  },
+  "environment_variables": {
+    "CLOUDINARY_CLOUD_NAME": "dz3cmaxnc",
+    "GOOGLE_SHEETS_TEXT_CONFIG_ID": "1EtZMb8HEdB-_fl7NJa1fv2y26S3zJZbpxgNUoQr5yrE",
+    "TELEGRAM_BOT_TOKEN": "YOUR_BOT_TOKEN",
+    "N8N_WEBHOOK_URL": "https://your-n8n-domain.com"
+  }
+}

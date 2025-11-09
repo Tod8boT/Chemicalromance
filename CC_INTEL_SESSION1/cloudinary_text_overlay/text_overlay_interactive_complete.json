@@ -1,0 +1,335 @@
+{
+  "name": "Cloudinary Text Overlay - Interactive Complete",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "text-overlay",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-form-trigger",
+      "name": "Webhook: Display Form",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "text-overlay-form-display"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEETS_TEXT_CONFIG_ID || '1EtZMb8HEdB-_fl7NJa1fv2y26S3zJZbpxgNUoQr5yrE' }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "text_overlay_config",
+          "mode": "list",
+          "cachedResultName": "text_overlay_config"
+        },
+        "filtersUI": {},
+        "options": {}
+      },
+      "id": "load-text-templates",
+      "name": "Load Text Templates",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [460, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_CRED_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get query parameters from webhook\nconst query = $('Webhook: Display Form').first().json.query || {};\nconst imageUrl = query.image_url || query.img || '';\nconst chatId = query.chat_id || query.chat || '';\nconst webhookUrl = query.webhook_url || $env.N8N_WEBHOOK_URL || 'https://n8n.your-domain.com';\n\n// Get templates from Google Sheets\nconst templates = $input.all().map(item => item.json);\n\n// Build template selector options\nconst templateOptions = templates.map(t => \n  `<option value=\"${t.template_id}\">${t.template_id} - ${t.font_family} ${t.font_size}px</option>`\n).join('\\n');\n\n// Generate HTML form\nconst html = `<!DOCTYPE html>\n<html lang=\"th\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\">\n  <title>✨ Text Overlay Creator</title>\n  <style>\n    * {\n      margin: 0;\n      padding: 0;\n      box-sizing: border-box;\n    }\n    body {\n      font-family: 'Mitr', 'Sarabun', sans-serif;\n      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n      min-height: 100vh;\n      padding: 20px;\n    }\n    .container {\n      max-width: 600px;\n      margin: 0 auto;\n      background: white;\n      border-radius: 20px;\n      box-shadow: 0 20px 60px rgba(0,0,0,0.3);\n      overflow: hidden;\n    }\n    .header {\n      background: linear-gradient(135deg, #ffdd17 0%, #ff9a17 100%);\n      padding: 30px 20px;\n      text-align: center;\n      color: #333;\n    }\n    .header h1 {\n      font-size: 28px;\n      margin-bottom: 10px;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      gap: 10px;\n    }\n    .preview-container {\n      padding: 20px;\n      background: #f8f9fa;\n    }\n    .preview-image {\n      width: 100%;\n      border-radius: 12px;\n      box-shadow: 0 4px 12px rgba(0,0,0,0.1);\n      display: ${imageUrl ? 'block' : 'none'};\n    }\n    .no-image {\n      padding: 60px 20px;\n      text-align: center;\n      color: #999;\n      display: ${imageUrl ? 'none' : 'block'};\n    }\n    .form-section {\n      padding: 30px 20px;\n    }\n    .form-group {\n      margin-bottom: 20px;\n    }\n    label {\n      display: block;\n      margin-bottom: 8px;\n      font-weight: 600;\n      color: #333;\n      font-size: 14px;\n    }\n    input[type=\"text\"],\n    textarea,\n    select {\n      width: 100%;\n      padding: 12px 16px;\n      border: 2px solid #e1e8ed;\n      border-radius: 8px;\n      font-size: 16px;\n      font-family: inherit;\n      transition: all 0.3s;\n    }\n    input[type=\"text\"]:focus,\n    textarea:focus,\n    select:focus {\n      outline: none;\n      border-color: #667eea;\n      box-shadow: 0 0 0 3px rgba(102,126,234,0.1);\n    }\n    textarea {\n      resize: vertical;\n      min-height: 80px;\n    }\n    .range-group {\n      margin-bottom: 20px;\n    }\n    .range-label {\n      display: flex;\n      justify-content: space-between;\n      margin-bottom: 8px;\n    }\n    .range-value {\n      background: #667eea;\n      color: white;\n      padding: 2px 12px;\n      border-radius: 12px;\n      font-size: 14px;\n      font-weight: 600;\n    }\n    input[type=\"range\"] {\n      width: 100%;\n      height: 8px;\n      border-radius: 4px;\n      background: #e1e8ed;\n      outline: none;\n      -webkit-appearance: none;\n    }\n    input[type=\"range\"]::-webkit-slider-thumb {\n      -webkit-appearance: none;\n      appearance: none;\n      width: 24px;\n      height: 24px;\n      border-radius: 50%;\n      background: #667eea;\n      cursor: pointer;\n      box-shadow: 0 2px 8px rgba(102,126,234,0.4);\n    }\n    input[type=\"range\"]::-moz-range-thumb {\n      width: 24px;\n      height: 24px;\n      border-radius: 50%;\n      background: #667eea;\n      cursor: pointer;\n      border: none;\n    }\n    .color-group {\n      display: grid;\n      grid-template-columns: 1fr auto;\n      gap: 12px;\n      align-items: end;\n    }\n    input[type=\"color\"] {\n      width: 80px;\n      height: 45px;\n      border: none;\n      border-radius: 8px;\n      cursor: pointer;\n    }\n    .checkbox-group {\n      display: flex;\n      align-items: center;\n      gap: 10px;\n      padding: 12px;\n      background: #f8f9fa;\n      border-radius: 8px;\n      cursor: pointer;\n      user-select: none;\n    }\n    input[type=\"checkbox\"] {\n      width: 24px;\n      height: 24px;\n      cursor: pointer;\n    }\n    .position-grid {\n      display: grid;\n      grid-template-columns: repeat(3, 1fr);\n      gap: 8px;\n      margin-top: 8px;\n    }\n    .position-btn {\n      padding: 12px;\n      border: 2px solid #e1e8ed;\n      border-radius: 8px;\n      background: white;\n      cursor: pointer;\n      transition: all 0.2s;\n      font-size: 14px;\n      font-weight: 600;\n      color: #666;\n    }\n    .position-btn:hover {\n      border-color: #667eea;\n      background: #f0f3ff;\n    }\n    .position-btn.active {\n      background: #667eea;\n      color: white;\n      border-color: #667eea;\n    }\n    .submit-btn {\n      width: 100%;\n      padding: 16px;\n      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n      color: white;\n      border: none;\n      border-radius: 12px;\n      font-size: 18px;\n      font-weight: 700;\n      cursor: pointer;\n      transition: all 0.3s;\n      box-shadow: 0 4px 12px rgba(102,126,234,0.4);\n    }\n    .submit-btn:hover {\n      transform: translateY(-2px);\n      box-shadow: 0 6px 20px rgba(102,126,234,0.5);\n    }\n    .submit-btn:active {\n      transform: translateY(0);\n    }\n    .loading {\n      display: none;\n      text-align: center;\n      padding: 20px;\n    }\n    .loading.active {\n      display: block;\n    }\n    @keyframes spin {\n      to { transform: rotate(360deg); }\n    }\n    .spinner {\n      width: 40px;\n      height: 40px;\n      border: 4px solid #e1e8ed;\n      border-top-color: #667eea;\n      border-radius: 50%;\n      animation: spin 0.8s linear infinite;\n      margin: 0 auto 12px;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>\n        <span>✨</span>\n        <span>Text Overlay Creator</span>\n        <span>✨</span>\n      </h1>\n      <p>เพิ่มข้อความบนรูปภาพของคุณ</p>\n    </div>\n\n    <div class=\"preview-container\">\n      <img id=\"previewImg\" class=\"preview-image\" src=\"${imageUrl}\" alt=\"Preview\">\n      <div class=\"no-image\">\n        <p>📷 ไม่มีรูปภาพสำหรับ preview</p>\n      </div>\n    </div>\n\n    <form id=\"overlayForm\" class=\"form-section\">\n      <input type=\"hidden\" name=\"image_url\" value=\"${imageUrl}\">\n      <input type=\"hidden\" name=\"chat_id\" value=\"${chatId}\">\n      <input type=\"hidden\" id=\"positionInput\" name=\"position\" value=\"center\">\n\n      <div class=\"form-group\">\n        <label>📝 ข้อความ (Text)</label>\n        <textarea name=\"text_content\" placeholder=\"ใส่ข้อความที่ต้องการ...\" required></textarea>\n      </div>\n\n      <div class=\"form-group\">\n        <label>🎨 เทมเพลต (Template)</label>\n        <select name=\"template_id\">\n          <option value=\"\">-- เลือกสไตล์ --</option>\n          ${templateOptions}\n        </select>\n      </div>\n\n      <div class=\"range-group\">\n        <div class=\"range-label\">\n          <label>📏 ขนาดตัวอักษร (Font Size)</label>\n          <span class=\"range-value\" id=\"fontSizeValue\">60px</span>\n        </div>\n        <input type=\"range\" name=\"font_size\" id=\"fontSize\" min=\"20\" max=\"150\" value=\"60\" step=\"5\">\n      </div>\n\n      <div class=\"color-group\">\n        <div class=\"form-group\">\n          <label>🎨 สีตัวอักษร (Text Color)</label>\n          <input type=\"text\" name=\"text_color\" id=\"textColorHex\" value=\"#FFFFFF\" placeholder=\"#FFFFFF\">\n        </div>\n        <input type=\"color\" id=\"textColor\" value=\"#FFFFFF\">\n      </div>\n\n      <div class=\"range-group\">\n        <div class=\"range-label\">\n          <label>🌀 โค้งข้อความ (Arc Curve)</label>\n          <span class=\"range-value\" id=\"arcValue\">0°</span>\n        </div>\n        <input type=\"range\" name=\"arc_curve\" id=\"arc\" min=\"-180\" max=\"180\" value=\"0\" step=\"5\">\n      </div>\n\n      <div class=\"form-group\">\n        <label>📍 ตำแหน่ง (Position)</label>\n        <div class=\"position-grid\">\n          <button type=\"button\" class=\"position-btn\" data-pos=\"north_west\">↖️</button>\n          <button type=\"button\" class=\"position-btn\" data-pos=\"north\">⬆️</button>\n          <button type=\"button\" class=\"position-btn\" data-pos=\"north_east\">↗️</button>\n          <button type=\"button\" class=\"position-btn\" data-pos=\"west\">⬅️</button>\n          <button type=\"button\" class=\"position-btn active\" data-pos=\"center\">🎯</button>\n          <button type=\"button\" class=\"position-btn\" data-pos=\"east\">➡️</button>\n          <button type=\"button\" class=\"position-btn\" data-pos=\"south_west\">↙️</button>\n          <button type=\"button\" class=\"position-btn\" data-pos=\"south\">⬇️</button>\n          <button type=\"button\" class=\"position-btn\" data-pos=\"south_east\">↘️</button>\n        </div>\n      </div>\n\n      <div class=\"checkbox-group\" onclick=\"this.querySelector('input').click()\">\n        <input type=\"checkbox\" name=\"stroke_enabled\" id=\"strokeEnabled\">\n        <label for=\"strokeEnabled\" style=\"margin: 0; cursor: pointer;\">🖍️ เพิ่มขอบตัวอักษร (Stroke)</label>\n      </div>\n\n      <div id=\"strokeOptions\" style=\"display: none; margin-top: 16px;\">\n        <div class=\"color-group\">\n          <div class=\"form-group\">\n            <label>สีขอบ (Stroke Color)</label>\n            <input type=\"text\" name=\"stroke_color\" id=\"strokeColorHex\" value=\"#000000\" placeholder=\"#000000\">\n          </div>\n          <input type=\"color\" id=\"strokeColor\" value=\"#000000\">\n        </div>\n        <div class=\"range-group\">\n          <div class=\"range-label\">\n            <label>ความหนาขอบ (Stroke Width)</label>\n            <span class=\"range-value\" id=\"strokeWidthValue\">5px</span>\n          </div>\n          <input type=\"range\" name=\"stroke_width\" id=\"strokeWidth\" min=\"1\" max=\"20\" value=\"5\" step=\"1\">\n        </div>\n      </div>\n\n      <div class=\"checkbox-group\" onclick=\"this.querySelector('input').click()\" style=\"margin-top: 16px;\">\n        <input type=\"checkbox\" name=\"shadow_enabled\" id=\"shadowEnabled\">\n        <label for=\"shadowEnabled\" style=\"margin: 0; cursor: pointer;\">🌑 เพิ่มเงา (Shadow)</label>\n      </div>\n\n      <div id=\"shadowOptions\" style=\"display: none; margin-top: 16px;\">\n        <div class=\"range-group\">\n          <div class=\"range-label\">\n            <label>ความเข้มเงา (Shadow Strength)</label>\n            <span class=\"range-value\" id=\"shadowStrengthValue\">50%</span>\n          </div>\n          <input type=\"range\" name=\"shadow_strength\" id=\"shadowStrength\" min=\"0\" max=\"100\" value=\"50\" step=\"10\">\n        </div>\n      </div>\n\n      <div id=\"loading\" class=\"loading\">\n        <div class=\"spinner\"></div>\n        <p>กำลังสร้างรูปภาพ...</p>\n      </div>\n\n      <button type=\"submit\" class=\"submit-btn\" id=\"submitBtn\">\n        ✨ สร้างรูปภาพ\n      </button>\n    </form>\n  </div>\n\n  <script>\n    // Update range value displays\n    const fontSize = document.getElementById('fontSize');\n    const fontSizeValue = document.getElementById('fontSizeValue');\n    fontSize.addEventListener('input', () => {\n      fontSizeValue.textContent = fontSize.value + 'px';\n    });\n\n    const arc = document.getElementById('arc');\n    const arcValue = document.getElementById('arcValue');\n    arc.addEventListener('input', () => {\n      arcValue.textContent = arc.value + '°';\n    });\n\n    const strokeWidth = document.getElementById('strokeWidth');\n    const strokeWidthValue = document.getElementById('strokeWidthValue');\n    strokeWidth.addEventListener('input', () => {\n      strokeWidthValue.textContent = strokeWidth.value + 'px';\n    });\n\n    const shadowStrength = document.getElementById('shadowStrength');\n    const shadowStrengthValue = document.getElementById('shadowStrengthValue');\n    shadowStrength.addEventListener('input', () => {\n      shadowStrengthValue.textContent = shadowStrength.value + '%';\n    });\n\n    // Color picker sync\n    const textColor = document.getElementById('textColor');\n    const textColorHex = document.getElementById('textColorHex');\n    textColor.addEventListener('input', () => {\n      textColorHex.value = textColor.value.toUpperCase();\n    });\n    textColorHex.addEventListener('input', () => {\n      if (/^#[0-9A-F]{6}$/i.test(textColorHex.value)) {\n        textColor.value = textColorHex.value;\n      }\n    });\n\n    const strokeColor = document.getElementById('strokeColor');\n    const strokeColorHex = document.getElementById('strokeColorHex');\n    strokeColor.addEventListener('input', () => {\n      strokeColorHex.value = strokeColor.value.toUpperCase();\n    });\n    strokeColorHex.addEventListener('input', () => {\n      if (/^#[0-9A-F]{6}$/i.test(strokeColorHex.value)) {\n        strokeColor.value = strokeColorHex.value;\n      }\n    });\n\n    // Position selector\n    const positionBtns = document.querySelectorAll('.position-btn');\n    const positionInput = document.getElementById('positionInput');\n    positionBtns.forEach(btn => {\n      btn.addEventListener('click', (e) => {\n        e.preventDefault();\n        positionBtns.forEach(b => b.classList.remove('active'));\n        btn.classList.add('active');\n        positionInput.value = btn.dataset.pos;\n      });\n    });\n\n    // Toggle options\n    const strokeEnabled = document.getElementById('strokeEnabled');\n    const strokeOptions = document.getElementById('strokeOptions');\n    strokeEnabled.addEventListener('change', () => {\n      strokeOptions.style.display = strokeEnabled.checked ? 'block' : 'none';\n    });\n\n    const shadowEnabled = document.getElementById('shadowEnabled');\n    const shadowOptions = document.getElementById('shadowOptions');\n    shadowEnabled.addEventListener('change', () => {\n      shadowOptions.style.display = shadowEnabled.checked ? 'block' : 'none';\n    });\n\n    // Form submission\n    const form = document.getElementById('overlayForm');\n    const submitBtn = document.getElementById('submitBtn');\n    const loading = document.getElementById('loading');\n\n    form.addEventListener('submit', async (e) => {\n      e.preventDefault();\n      \n      submitBtn.disabled = true;\n      loading.classList.add('active');\n      submitBtn.textContent = 'กำลังประมวลผล...';\n\n      const formData = new FormData(form);\n      const data = Object.fromEntries(formData);\n\n      try {\n        const response = await fetch('${webhookUrl}/webhook/text-overlay-submit', {\n          method: 'POST',\n          headers: {\n            'Content-Type': 'application/json'\n          },\n          body: JSON.stringify(data)\n        });\n\n        const result = await response.json();\n\n        if (result.success) {\n          submitBtn.style.background = 'linear-gradient(135deg, #00c851 0%, #007e33 100%)';\n          submitBtn.textContent = '✅ สำเร็จ!';\n          setTimeout(() => {\n            if (window.Telegram && window.Telegram.WebApp) {\n              window.Telegram.WebApp.close();\n            } else {\n              window.close();\n            }\n          }, 1500);\n        } else {\n          throw new Error(result.error || 'เกิดข้อผิดพลาด');\n        }\n      } catch (error) {\n        submitBtn.style.background = 'linear-gradient(135deg, #ff4444 0%, #cc0000 100%)';\n        submitBtn.textContent = '❌ ผิดพลาด: ' + error.message;\n        setTimeout(() => {\n          submitBtn.disabled = false;\n          submitBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';\n          submitBtn.textContent = '✨ สร้างรูปภาพ';\n          loading.classList.remove('active');\n        }, 2000);\n      }\n    });\n  </script>\n</body>\n</html>`;\n\nreturn [{ html, imageUrl, chatId, templateCount: templates.length }];"
+      },
+      "id": "generate-html-form",
+      "name": "Generate HTML Form",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-cache, no-store, must-revalidate"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-with-form",
+      "name": "Respond with Form",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "text-overlay-submit",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-form-submit",
+      "name": "Webhook: Form Submit",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 540],
+      "webhookId": "text-overlay-form-submit"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse form submission\nconst body = $input.first().json.body || $input.first().json;\n\n// Validate required fields\nconst required = ['image_url', 'text_content'];\nconst missing = required.filter(field => !body[field]);\n\nif (missing.length > 0) {\n  throw new Error(`Missing required fields: ${missing.join(', ')}`);\n}\n\n// Parse and validate data\nconst data = {\n  image_url: body.image_url,\n  text_content: body.text_content,\n  template_id: body.template_id || 'default',\n  chat_id: body.chat_id || '',\n  \n  // Text styling\n  font_size: parseInt(body.font_size) || 60,\n  text_color: (body.text_color || '#FFFFFF').replace('#', ''),\n  position: body.position || 'center',\n  arc_curve: parseInt(body.arc_curve) || 0,\n  \n  // Stroke\n  stroke_enabled: body.stroke_enabled === 'on' || body.stroke_enabled === true,\n  stroke_color: (body.stroke_color || '#000000').replace('#', ''),\n  stroke_width: parseInt(body.stroke_width) || 5,\n  \n  // Shadow\n  shadow_enabled: body.shadow_enabled === 'on' || body.shadow_enabled === true,\n  shadow_strength: parseInt(body.shadow_strength) || 50,\n  \n  // Metadata\n  timestamp: new Date().toISOString(),\n  source: 'interactive_form'\n};\n\n// Validate text length\nif (data.text_content.length > 200) {\n  throw new Error('Text too long (max 200 characters)');\n}\n\n// Validate image URL\nif (!data.image_url.startsWith('http')) {\n  throw new Error('Invalid image URL');\n}\n\nreturn [data];"
+      },
+      "id": "validate-input",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 540]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get validated data\nconst data = $input.first().json;\nconst cloudName = $env.CLOUDINARY_CLOUD_NAME || 'dz3cmaxnc';\n\n/**\n * Encode text for URL (supports Thai)\n */\nfunction encodeText(text) {\n  return encodeURIComponent(text)\n    .replace(/'/g, '%27')\n    .replace(/\"/g, '%22');\n}\n\n/**\n * Build Cloudinary transformation URL\n */\nfunction buildCloudinaryURL(cloudName, imageUrl, transformations) {\n  const baseUrl = `https://res.cloudinary.com/${cloudName}/image/upload`;\n  const encodedImageUrl = encodeURIComponent(imageUrl);\n  return `${baseUrl}/${transformations}${encodedImageUrl}`;\n}\n\n/**\n * Build text layer transformations\n */\nfunction buildTextLayer(data) {\n  const layers = [];\n  \n  // Base image transformations\n  layers.push('w_1080,h_1080,c_fill');\n  \n  // Text layer\n  const fontFamily = 'Mitr';  // Thai-compatible font\n  const fontSize = data.font_size;\n  const fontWeight = 'bold';\n  const encodedText = encodeText(data.text_content);\n  \n  let textLayer = `l_text:${fontFamily}_${fontSize}_${fontWeight}:${encodedText}`;\n  \n  // Text color\n  textLayer += `,co_rgb:${data.text_color}`;\n  \n  // Max width for text wrapping\n  textLayer += `,w_900,c_fit`;\n  \n  layers.push(textLayer);\n  \n  // Stroke/outline\n  if (data.stroke_enabled && data.stroke_width > 0) {\n    layers.push(`co_rgb:${data.stroke_color},e_outline:${data.stroke_width}`);\n  }\n  \n  // Shadow\n  if (data.shadow_enabled && data.shadow_strength > 0) {\n    layers.push(`e_shadow:${data.shadow_strength}`);\n  }\n  \n  // Arc/curve\n  if (data.arc_curve !== 0) {\n    layers.push(`e_distort:arc:${data.arc_curve}`);\n  }\n  \n  // Position and apply layer\n  let position = `fl_layer_apply,g_${data.position}`;\n  layers.push(position);\n  \n  // Auto format and quality\n  layers.push('f_auto,q_auto');\n  \n  return layers.join('/');\n}\n\n// Build transformations\nconst transformations = buildTextLayer(data);\n\n// Build URLs\nconst finalUrl = buildCloudinaryURL(cloudName, data.image_url, transformations);\nconst previewUrl = buildCloudinaryURL(\n  cloudName, \n  data.image_url, \n  transformations.replace('w_1080,h_1080', 'w_600,h_600')\n);\n\n// Return result\nreturn [{\n  success: true,\n  final_url: finalUrl,\n  preview_url: previewUrl,\n  transformation_string: transformations,\n  original_image: data.image_url,\n  text_content: data.text_content,\n  chat_id: data.chat_id,\n  metadata: {\n    font_size: data.font_size,\n    text_color: data.text_color,\n    position: data.position,\n    arc_curve: data.arc_curve,\n    stroke: data.stroke_enabled,\n    shadow: data.shadow_enabled,\n    created_at: data.timestamp\n  }\n}];"
+      },
+      "id": "build-cloudinary-url",
+      "name": "Build Cloudinary URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 540]
+    },
+    {
+      "parameters": {
+        "method": "HEAD",
+        "url": "={{ $json.final_url }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "test-url",
+      "name": "Test URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 540]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendPhoto",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"{{ $('Build Cloudinary URL').first().json.chat_id }}\",\n  \"photo\": \"{{ $('Build Cloudinary URL').first().json.final_url }}\",\n  \"caption\": \"✨ รูปภาพของคุณพร้อมแล้ว!\\n\\n📝 {{ $('Build Cloudinary URL').first().json.text_content }}\\n\\n🔗 URL: {{ $('Build Cloudinary URL').first().json.final_url }}\",\n  \"parse_mode\": \"Markdown\"\n}",
+        "options": {}
+      },
+      "id": "send-to-telegram",
+      "name": "Send to Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 540]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"รูปภาพถูกส่งไปยัง Telegram แล้ว\",\n  \"url\": \"{{ $('Build Cloudinary URL').first().json.final_url }}\"\n}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 540]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-check",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-errors",
+      "name": "Check for Errors",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 740]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"{{ $json.error || 'Unknown error occurred' }}\",\n  \"details\": \"{{ $json.stack || '' }}\"\n}",
+        "responseCode": 400,
+        "options": {}
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 740]
+    }
+  ],
+  "connections": {
+    "Webhook: Display Form": {
+      "main": [
+        [
+          {
+            "node": "Load Text Templates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Text Templates": {
+      "main": [
+        [
+          {
+            "node": "Generate HTML Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate HTML Form": {
+      "main": [
+        [
+          {
+            "node": "Respond with Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: Form Submit": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check for Errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Build Cloudinary URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Cloudinary URL": {
+      "main": [
+        [
+          {
+            "node": "Test URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test URL": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Telegram": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Errors": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-11-09T00:00:00.000Z",
+      "updatedAt": "2025-11-09T00:00:00.000Z",
+      "id": "cloudinary",
+      "name": "cloudinary"
+    },
+    {
+      "createdAt": "2025-11-09T00:00:00.000Z",
+      "updatedAt": "2025-11-09T00:00:00.000Z",
+      "id": "text-overlay",
+      "name": "text-overlay"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-11-09T00:00:00.000Z",
+  "versionId": "1.0.0",
+  "id": "cloudinary-text-overlay-interactive",
+  "active": false
+}
