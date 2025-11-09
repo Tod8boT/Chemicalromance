@@ -1,0 +1,239 @@
+{
+  "name": "Text Overlay Enhanced V2",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "overlay-form-v2",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-form-display",
+      "name": "Form Display Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [300, 400],
+      "webhookId": "enhanced-overlay-form-v2"
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/Tod8boT/Chemicalromance/main/text_overlay_form_enhanced_v2.html",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "fetch-html-form",
+      "name": "Fetch Enhanced HTML Form",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced Form Data Injection\nconst html = $input.first().json.data || $input.first().json;\nconst webhookData = $('Form Display Webhook').first().json.query;\n\nconst imageUrl = webhookData.image_url || '';\nconst chatId = webhookData.chat_id || '';\nconst mode = webhookData.mode || 'standard'; // standard, avatar, price_tag, neon, vintage\n\nlet htmlContent = typeof html === 'string' ? html : JSON.stringify(html);\n\n// Replace placeholders\nhtmlContent = htmlContent.replace(/\\{\\{image_url\\}\\}/g, imageUrl);\nhtmlContent = htmlContent.replace(/\\{\\{chat_id\\}\\}/g, chatId);\nhtmlContent = htmlContent.replace(/\\{\\{mode\\}\\}/g, mode);\n\nreturn [{ \n  html: htmlContent,\n  metadata: {\n    image_url: imageUrl,\n    chat_id: chatId,\n    mode: mode\n  }\n}];"
+      },
+      "id": "inject-form-data",
+      "name": "Inject Form Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-cache, no-store, must-revalidate"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-html-form",
+      "name": "Respond with HTML Form",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "overlay-submit-v2",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-form-submit",
+      "name": "Form Submit Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [300, 700],
+      "webhookId": "enhanced-overlay-submit-v2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== Enhanced Cloudinary URL Builder V2 =====\n// Supports: Multiple text layers, Logo, Graphic, Advanced effects\n// Based on: Enhanced_Cloudinary_URL_Builder.js + Cloudinary latest docs\n\nconst data = $input.first().json.body;\nconst cloudName = \"dz3cmaxnc\";\n\n// === HELPER FUNCTIONS ===\n\nfunction encodeText(text) {\n  return encodeURIComponent(text);\n}\n\nfunction buildTextLayer(textConfig, textContent, layerNum = 1) {\n  if (!textContent || textContent.trim() === '') return '';\n  \n  let layer = '';\n  \n  // Handle special modes\n  let processedText = textContent;\n  \n  // Avatar mode - extract initials\n  if (textConfig.initials_mode) {\n    const words = textContent.trim().split(/\\s+/);\n    if (words.length === 1) {\n      processedText = words[0].substring(0, 2).toUpperCase();\n    } else {\n      processedText = words[0][0].toUpperCase() + words[words.length - 1][0].toUpperCase();\n    }\n  }\n  \n  // Price tag mode - add prefix/suffix\n  if (textConfig.prefix || textConfig.suffix) {\n    const prefix = textConfig.prefix || '';\n    const suffix = textConfig.suffix || '';\n    processedText = `${prefix}${processedText}${suffix}`;\n  }\n  \n  const encodedText = encodeText(processedText);\n  \n  // Font configuration\n  const font = textConfig.font_family || 'Mitr';\n  const size = textConfig.font_size || 60;\n  const weight = textConfig.font_weight || 'bold';\n  const align = textConfig.text_align || 'center';\n  const maxWidth = textConfig.max_width || 900;\n  \n  // Build text layer\n  const fontStyle = weight === 'normal' ? '' : `_${weight}`;\n  layer += `l_text:${font}_${size}${fontStyle}_${align}:${encodedText},w_${maxWidth},c_fit`;\n  \n  // Text color\n  if (textConfig.text_color) {\n    const color = textConfig.text_color.replace('#', '');\n    layer += `,co_rgb:${color}`;\n  }\n  \n  // Multiple stroke layers (for 3D/neon effect)\n  if (textConfig.stroke_enabled && textConfig.stroke_layers && Array.isArray(textConfig.stroke_layers)) {\n    textConfig.stroke_layers.forEach(strokeLayer => {\n      const strokeColor = strokeLayer.color.replace('#', '');\n      layer += `/co_rgb:${strokeColor},e_outline:${strokeLayer.width}`;\n    });\n  } else if (textConfig.stroke_enabled && textConfig.stroke_width > 0) {\n    const strokeColor = (textConfig.stroke_color || '#000000').replace('#', '');\n    layer += `/co_rgb:${strokeColor},e_outline:${textConfig.stroke_width}`;\n  }\n  \n  // Apply effects array (neon, blur, pixelate, etc.)\n  if (textConfig.effects && Array.isArray(textConfig.effects)) {\n    textConfig.effects.forEach(effect => {\n      layer += `/e_${effect}`;\n    });\n  }\n  \n  // Shadow\n  if (textConfig.shadow_enabled && textConfig.shadow_strength > 0) {\n    layer += `/e_shadow:${textConfig.shadow_strength}`;\n  }\n  \n  // Arc curve distortion (-180 to 180)\n  if (textConfig.arc_curve && textConfig.arc_curve !== 0) {\n    const arcValue = parseFloat(textConfig.arc_curve).toFixed(1);\n    layer += `/e_distort:arc:${arcValue}`;\n  }\n  \n  // Background box for text\n  if (textConfig.background_enabled) {\n    const bgColor = (textConfig.background_color || '#000000').replace('#', '');\n    const bgOpacity = textConfig.background_opacity || 80;\n    layer += `/b_rgb:${bgColor},o_${bgOpacity}`;\n  }\n  \n  // Position and apply layer\n  const position = textConfig.position || 'center';\n  const xOffset = textConfig.x_offset || 0;\n  const yOffset = textConfig.y_offset || 0;\n  \n  layer += `/fl_layer_apply,g_${position}`;\n  if (xOffset !== 0) layer += `,x_${xOffset}`;\n  if (yOffset !== 0) layer += `,y_${yOffset}`;\n  layer += '/';\n  \n  return layer;\n}\n\nfunction buildLogoLayer(logoConfig) {\n  if (!logoConfig || !logoConfig.enabled) return '';\n  \n  const logoId = logoConfig.public_id || 'cremo_logo';\n  const width = logoConfig.width || 120;\n  const position = logoConfig.position || 'north_west';\n  const xOffset = logoConfig.x_offset || 15;\n  const yOffset = logoConfig.y_offset || 15;\n  const opacity = logoConfig.opacity || 100;\n  \n  let layer = `l_${logoId},w_${width}`;\n  if (opacity < 100) layer += `,o_${opacity}`;\n  layer += `/fl_layer_apply,g_${position},x_${xOffset},y_${yOffset}/`;\n  \n  return layer;\n}\n\nfunction buildGraphicLayer(graphicConfig) {\n  if (!graphicConfig || !graphicConfig.enabled) return '';\n  \n  const graphicId = graphicConfig.public_id;\n  const width = graphicConfig.width || 100;\n  const position = graphicConfig.position || 'north_east';\n  const xOffset = graphicConfig.x_offset || 15;\n  const yOffset = graphicConfig.y_offset || 15;\n  const opacity = graphicConfig.opacity || 100;\n  \n  let layer = `l_${graphicId},w_${width}`;\n  if (opacity < 100) layer += `,o_${opacity}`;\n  layer += `/fl_layer_apply,g_${position},x_${xOffset},y_${yOffset}/`;\n  \n  return layer;\n}\n\n// === MAIN URL BUILDING ===\n\nlet url = `https://res.cloudinary.com/${cloudName}/image/upload/`;\n\n// Base transformations\nconst baseWidth = data.base_width || 1080;\nconst baseHeight = data.base_height || 1080;\nurl += `w_${baseWidth},h_${baseHeight},c_fill,g_auto/`;\n\n// Base effects (vintage, sepia, blur, etc.)\nif (data.base_effects && Array.isArray(data.base_effects)) {\n  data.base_effects.forEach(effect => {\n    url += `e_${effect}/`;\n  });\n}\n\n// Background layer (for avatar mode or special backgrounds)\nif (data.background && data.background.enabled) {\n  const bgColor = (data.background.color || '#FFFFFF').replace('#', '');\n  url += `b_rgb:${bgColor}/`;\n  if (data.background.effect) {\n    url += `e_${data.background.effect}/`;\n  }\n}\n\n// Logo overlay\nif (data.logo) {\n  url += buildLogoLayer(data.logo);\n}\n\n// Text Layer 1 (Main text)\nconst text1 = data.text1 || data.text_content || '';\nif (text1) {\n  const text1Config = {\n    font_family: data.font_family || 'Mitr',\n    font_size: parseInt(data.font_size) || 60,\n    font_weight: data.font_weight || 'bold',\n    text_align: data.text_align || 'center',\n    text_color: data.text_color || '#FFFFFF',\n    max_width: parseInt(data.max_width) || 900,\n    stroke_enabled: data.stroke_enabled === 'true' || data.stroke_enabled === true,\n    stroke_color: data.stroke_color || '#000000',\n    stroke_width: parseInt(data.stroke_width) || 5,\n    stroke_layers: data.stroke_layers,\n    shadow_enabled: data.shadow_enabled === 'true' || data.shadow_enabled === true,\n    shadow_strength: parseInt(data.shadow_strength) || 50,\n    arc_curve: parseFloat(data.arc_curve) || 0,\n    background_enabled: data.background_enabled === 'true' || data.background_enabled === true,\n    background_color: data.background_color || '#000000',\n    background_opacity: parseInt(data.background_opacity) || 80,\n    position: data.position || 'center',\n    x_offset: parseInt(data.x_offset) || 0,\n    y_offset: parseInt(data.y_offset) || 0,\n    effects: data.text1_effects,\n    initials_mode: data.initials_mode === 'true' || data.initials_mode === true,\n    prefix: data.prefix || '',\n    suffix: data.suffix || ''\n  };\n  \n  url += buildTextLayer(text1Config, text1, 1);\n}\n\n// Text Layer 2 (Secondary text - optional)\nconst text2 = data.text2 || '';\nif (text2 && data.text2_enabled) {\n  const text2Config = {\n    font_family: data.text2_font_family || 'Arial',\n    font_size: parseInt(data.text2_font_size) || 40,\n    font_weight: data.text2_font_weight || 'normal',\n    text_align: data.text2_text_align || 'center',\n    text_color: data.text2_text_color || '#FFFFFF',\n    max_width: parseInt(data.text2_max_width) || 800,\n    position: data.text2_position || 'south',\n    y_offset: parseInt(data.text2_y_offset) || 50,\n    x_offset: parseInt(data.text2_x_offset) || 0,\n    arc_curve: parseFloat(data.text2_arc_curve) || 0\n  };\n  \n  url += buildTextLayer(text2Config, text2, 2);\n}\n\n// Text Layer 3 (Tertiary text - optional)\nconst text3 = data.text3 || '';\nif (text3 && data.text3_enabled) {\n  const text3Config = {\n    font_family: data.text3_font_family || 'Arial',\n    font_size: parseInt(data.text3_font_size) || 30,\n    font_weight: data.text3_font_weight || 'normal',\n    text_align: data.text3_text_align || 'center',\n    text_color: data.text3_text_color || '#FFFFFF',\n    max_width: parseInt(data.text3_max_width) || 700,\n    position: data.text3_position || 'north',\n    y_offset: parseInt(data.text3_y_offset) || 50,\n    x_offset: parseInt(data.text3_x_offset) || 0\n  };\n  \n  url += buildTextLayer(text3Config, text3, 3);\n}\n\n// Graphic overlay (badges, stickers, etc.)\nif (data.graphic) {\n  url += buildGraphicLayer(data.graphic);\n}\n\n// Final output format\nconst format = data.output_format || 'jpg';\nconst quality = data.quality || 'auto';\nurl += `q_${quality}/`;\n\n// Add source image\nconst imageUrl = data.image_url;\nif (imageUrl && imageUrl.includes('http')) {\n  // Use fetch method for external URLs\n  const encodedImageUrl = encodeURIComponent(imageUrl);\n  url += `f_${format}/${encodedImageUrl}`;\n} else {\n  url += `sample.${format}`;\n}\n\n// Build preview URL (smaller for Telegram preview)\nconst previewUrl = url.replace(`w_${baseWidth},h_${baseHeight}`, 'w_600,h_600');\n\nreturn [{\n  success: true,\n  cloudinary_url: url,\n  preview_url: previewUrl,\n  chat_id: data.chat_id,\n  metadata: {\n    text1: text1,\n    text2: text2 || null,\n    text3: text3 || null,\n    mode: data.mode || 'standard',\n    has_logo: data.logo && data.logo.enabled,\n    has_graphic: data.graphic && data.graphic.enabled,\n    arc_curve: parseFloat(data.arc_curve) || 0,\n    base_width: baseWidth,\n    base_height: baseHeight,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "build-enhanced-url",
+      "name": "Build Enhanced Cloudinary URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 700]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendPhoto",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $json.chat_id }}"
+            },
+            {
+              "name": "photo",
+              "value": "={{ $json.cloudinary_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "=✅ สร้างข้อความบนรูปเสร็จแล้ว!\n\n📝 ข้อความ: {{ $json.metadata.text1 }}{{ $json.metadata.text2 ? '\\n📝 ข้อความ 2: ' + $json.metadata.text2 : '' }}{{ $json.metadata.text3 ? '\\n📝 ข้อความ 3: ' + $json.metadata.text3 : '' }}\n🎨 Arc Curve: {{ $json.metadata.arc_curve }}°\n{{ $json.metadata.has_logo ? '🏷️ Logo: ใช่' : '' }}\n{{ $json.metadata.has_graphic ? '🎯 Graphic: ใช่' : '' }}\n\n🔗 URL: {{ $json.cloudinary_url }}"
+            },
+            {
+              "name": "reply_markup",
+              "value": "={{ JSON.stringify({inline_keyboard: [[{text: '🔄 แก้ไขใหม่', url: $env.N8N_HOST + '/webhook/overlay-form-v2?image_url=' + encodeURIComponent($json.metadata.image_url) + '&chat_id=' + $json.chat_id}, {text: '✅ ใช้รูปนี้', callback_data: 'approve_image'}]]}) }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "retry": {
+            "enabled": true,
+            "maxRetries": 3,
+            "retryInterval": 2000
+          }
+        }
+      },
+      "id": "send-telegram-photo",
+      "name": "Send to Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 700]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true, \"message\": \"Image created successfully\", \"url\": \"{{ $json.cloudinary_url }}\" }",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 700]
+    }
+  ],
+  "connections": {
+    "Form Display Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Enhanced HTML Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Enhanced HTML Form": {
+      "main": [
+        [
+          {
+            "node": "Inject Form Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inject Form Data": {
+      "main": [
+        [
+          {
+            "node": "Respond with HTML Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form Submit Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Enhanced Cloudinary URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Enhanced Cloudinary URL": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Telegram": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "enhanced-text-overlay-v2"
+  },
+  "id": "text-overlay-enhanced-v2",
+  "tags": [
+    {
+      "createdAt": "2025-11-09T00:00:00.000Z",
+      "updatedAt": "2025-11-09T00:00:00.000Z",
+      "id": "1",
+      "name": "cloudinary"
+    },
+    {
+      "createdAt": "2025-11-09T00:00:00.000Z",
+      "updatedAt": "2025-11-09T00:00:00.000Z",
+      "id": "2",
+      "name": "text-overlay"
+    },
+    {
+      "createdAt": "2025-11-09T00:00:00.000Z",
+      "updatedAt": "2025-11-09T00:00:00.000Z",
+      "id": "3",
+      "name": "enhanced"
+    }
+  ]
+}
