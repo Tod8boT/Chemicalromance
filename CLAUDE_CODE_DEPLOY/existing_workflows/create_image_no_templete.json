@@ -1,0 +1,1465 @@
+{
+  "name": "create_image_no_templete",
+  "nodes": [
+    {
+      "parameters": {
+        "model": "x-ai/grok-4-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        1152
+      ],
+      "id": "8bcccebf-4e05-420c-a24b-91a5691ca54b",
+      "name": "grok-4-fast1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "tRFwGpdl8GV30fOZ",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "4RsOafwqPCwgTcUA",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/4RsOafwqPCwgTcUA",
+          "cachedResultName": "keep_data_price"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -192,
+        1088
+      ],
+      "id": "c14e6ab5-967c-4b57-ac70-e0575be6512c",
+      "name": "keep_data_price1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        1024
+      ],
+      "id": "d589188f-b4f3-4e03-94f7-a96930cd2bcc",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "tRFwGpdl8GV30fOZ",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"platform\": \"facebook or instagram\",\n  \"campaign\": \"string\",\n  \"post_text\": \"string\",\n  \"hashtags\": [\"#brand\", \"#product\", \"#promotion\", \"#campaign\"]\n}"
+      },
+      "id": "4e0b8565-2a33-4ee4-ad06-5f4f3f633e19",
+      "name": "Structured Output Parser1",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [
+        -416,
+        1008
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "text": "=Depcribe the product and brand in this image in full detail. Fully ignore the background. Focus ONLY on the product.",
+        "imageUrls": "={{ $('Retrieve Generated Image URL').item.json.images[0].url }}",
+        "simplify": false,
+        "options": {}
+      },
+      "id": "20f5d97f-00f8-4f90-ad1b-8bbd8e8afe85",
+      "name": "Analyze Final Ad Image (OpenAI Vision)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        -736,
+        896
+      ],
+      "typeVersion": 1.8,
+      "credentials": {
+        "openAiApi": {
+          "id": "bnW5IDQ3uNDtVlAF",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You will receive:\n\n- caption: {{ $('Receive Product Image (Telegram Trigger)').item.json.message.caption }}\n- analyzed_description: {{ $('Analyze Final Ad Image (OpenAI Vision)').item.json.choices[0].message.content }}\n- platform: \"facebook\"\n\nCreate a social media post for {{ $('Analyze Final Ad Image (OpenAI Vision)').item.json.choices[0].message.content }} suitable for Facebook and Instagram.\nInclude emojis and hashtags that match the campaign tone.\nReturn only JSON as defined in the system prompt.",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "=You are a **Social Media Copywriter AI** specialized in creating engaging Facebook and Instagram posts for product marketing.\n\n### Inputs\nYou will receive:\n- **analyzed_description**: a short text analysis of the product image (from vision AI), describing its appearance, brand, material, packaging, color, or promotional context.\n- **platform**: either “facebook” or “instagram”.\n- **campaign** (optional): may include terms like \"10.10\", \"Christmas\", \"Songkran\", \"none\", etc.\n\n### Goal\nWrite 1 social media post that is engaging, concise, and visually descriptive — optimized for the given platform.  \nMake the product the hero of the post, highlight its uniqueness, and create emotional or promotional appeal.\n\n### Writing Style Rules\n- If **campaign** is provided, subtly adapt tone and visuals:\n  - **10.10 / 11.11 / 12.12** → energetic, bold, focus on deals and excitement.\n  - **Christmas / New Year** → warm, cozy, gift-worthy, festive emojis.\n  - **Songkran / Summer** → refreshing, fun, bright energy, water/festival tone.\n  - **Halloween** → playful, moody, orange/black vibe.\n  - If none → clean, modern, lifestyle-oriented tone.\n- Use **emoji** naturally (2–5 total), matching platform tone.\n- Keep text **short (3–6 lines)** for readability.\n- Avoid hashtags inside sentences; list them at the end.\n- Do **not** fabricate information not found in the analyzed description.\n- Mention product features using emotional and visual cues.\n- Include **call-to-action (CTA)** such as “Shop now”, “Try it today”, or “Limited-time offer”.\n\n### Output Format (JSON only)\nReturn a **single JSON object**:\n",
+          "returnIntermediateSteps": true
+        }
+      },
+      "id": "4bad065f-5b01-493b-9afa-25ead7af619c",
+      "name": "Generate Social Media Caption",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        -560,
+        896
+      ],
+      "typeVersion": 2.2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "={{ $('Start').item.json.message_chat_id }}",
+        "message": "=This caption for facebook post:\n\n{{ $json.output }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "e616472e-4f33-43aa-a82e-527b0ca0dbe9",
+      "name": "User Review: Approve/Reject Caption",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        -256,
+        896
+      ],
+      "webhookId": "dfe8e316-4f3b-46ba-aa17-baaeb3bfb312",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "d541205b-6bdb-477c-b8e2-67672228995a",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.data.approved.toString() }}",
+              "rightValue": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1575b81d-447e-4e7c-8572-80a012007ec2",
+      "name": "Check Caption Approval (Yes/No)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -80,
+        896
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "={{ $('Start').item.json.message_chat_id }}",
+        "file": "={{ $('Retrieve Generated Image URL').item.json.images[0].url }}",
+        "additionalFields": {}
+      },
+      "id": "a5bc565a-f7af-45ec-a446-bd9ec316197d",
+      "name": "Preview Post Image (Telegram)",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        144,
+        880
+      ],
+      "webhookId": "e663fbb9-f3ad-4e8f-a950-23b488aa4c41",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Start').item.json.message_chat_id }}",
+        "text": "={{ $('Generate Social Media Caption').item.json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "ec5fe413-6ac6-4036-8128-89964d824b2e",
+      "name": "Preview Post Caption (Telegram)",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        336,
+        880
+      ],
+      "webhookId": "8fe5f776-19a2-4d79-8cc5-ce42132d720a",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v23.0",
+        "node": "me",
+        "edge": "photos",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "url",
+                "value": "={{ $('Retrieve Generated Image URL').item.json.images[0].url }}"
+              },
+              {
+                "name": "message",
+                "value": "={{ $json.result.text }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "caf5a8cd-a10b-4ac9-986d-5c4be5afa961",
+      "name": "Publish Post to Facebook Page",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "position": [
+        640,
+        880
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "x50Ax7LoKFG46jHC",
+          "name": "Cremo Facebook Messenger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "id": "ec476f9b-6c83-43d8-8dc9-cde13838fbeb",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        -96,
+        704
+      ],
+      "webhookId": "469c5fab-ee5c-41ec-8862-615f54d32b95",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "62a409c6-c607-452b-9bbb-f3d29c86dddf",
+              "name": "product_image_URL",
+              "type": "string",
+              "value": "=https://api.telegram.org/bot8330210226:AAG49kjm1hXXw3fVkGrTdrtiJU_fBv7nvZY/getFile?file_id={{ $('Receive Product Image (Telegram Trigger)').item.json.message.photo[2].file_id }}"
+            },
+            {
+              "id": "a4bbbfad-d9e6-4e0f-a9fa-76b1d04694b0",
+              "name": "image_prompt",
+              "type": "string",
+              "value": "=caption: {{ $('Assemble Prompt Parameters').item.json.caption }}\nprompt: {{ $('Assemble Prompt Parameters').item.json.prompt }}\nstyle: {{ $('Assemble Prompt Parameters').item.json.style }}\nscene: {{ $('Assemble Prompt Parameters').item.json.scene }}\nlighting: {{ $('Assemble Prompt Parameters').item.json.lighting }}\ncamera: {{ $('Assemble Prompt Parameters').item.json.camera }}\ncomposition: {{ $('Assemble Prompt Parameters').item.json.composition }}\nbackground: {{ $('Assemble Prompt Parameters').item.json.background }}\ncolor_mood: {{ $('Assemble Prompt Parameters').item.json.color_mood }}\nmarketing_angle: {{ $('Assemble Prompt Parameters').item.json.marketing_angle }}"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "9612be15-4fb6-415b-8c7c-08a65ce4a6d1",
+      "name": "Prepare Fal.AI Input Fields",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -768,
+        624
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "method": "=POST",
+        "url": "=https://queue.fal.run/fal-ai/nano-banana/edit",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n     \"prompt\": {{ JSON.stringify(($json.image_prompt || '').replace(/\\r?\\n/g, ' ')) }},\n     \"image_urls\": [\n       \"https://api.telegram.org/file/bot8330210226:AAG49kjm1hXXw3fVkGrTdrtiJU_fBv7nvZY/{{ $('Get Telegram File Path').item.json.result.file_path }}\"\n     ],\n     \"num_images\": 1,\n     \"output_format\": \"jpeg\"\n}",
+        "options": {}
+      },
+      "id": "d1f0da0e-c6d8-4b6c-b95a-3b2ac60e6fc1",
+      "name": "Call Fal.AI API (nano-banana model)",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -592,
+        624
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "B6iPwD9fVMhT4XbX",
+          "name": "germini"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.status_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "f5163ecc-0bfd-45ca-9865-14f7a6216987",
+      "name": "Check Fal.AI Image Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -416,
+        624
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "B6iPwD9fVMhT4XbX",
+          "name": "germini"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "38f5427f-4fc7-4c07-87d5-fa7f5964deb2",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "=COMPLETED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "17509d15-a641-437e-9f70-ea7e8b099825",
+      "name": "Verify Image Generation Completed",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -240,
+        624
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "url": "=https://queue.fal.run/fal-ai/nano-banana/requests/{{ $json.request_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "a8ba1681-7dde-4aa7-b93d-8f8168fdc9f7",
+      "name": "Retrieve Generated Image URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        16,
+        608
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.2,
+      "alwaysOutputData": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "B6iPwD9fVMhT4XbX",
+          "name": "germini"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "={{ $('Start').item.json.message_chat_id }}",
+        "file": "={{ $json.images[0].url }}",
+        "additionalFields": {}
+      },
+      "id": "11ea7dbb-23e2-4230-9dff-3ffc41beaca9",
+      "name": "Send Generated Image to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        192,
+        608
+      ],
+      "webhookId": "fde28935-628e-432b-91ed-1f66b5bea421",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "={{ $('Start').item.json.message_chat_id }}",
+        "message": "Do you OK with image that AI generated.? If OK we will generate Caption for social media post.",
+        "responseType": "customForm",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Approval",
+              "fieldType": "radio",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approve"
+                  },
+                  {
+                    "option": "Reject"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "04188149-5657-45c5-be50-c69629a64a84",
+      "name": "User Review: Approve/Reject Generated Image",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        384,
+        608
+      ],
+      "webhookId": "1c7a83ca-44ea-430f-81c1-779f34505e43",
+      "executeOnce": true,
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "26f47c7f-6a13-4bbe-87e3-cb980d86d2ea",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.data.Approval }}",
+              "rightValue": "Approve"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cad542aa-41a7-4695-b1fb-4a0efe4458fe",
+      "name": "Check Image Approval (Yes/No)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        560,
+        608
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "4RsOafwqPCwgTcUA",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/4RsOafwqPCwgTcUA",
+          "cachedResultName": "keep_data_price"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -448,
+        480
+      ],
+      "id": "57a60020-06a6-4e02-91ea-30535277c0d8",
+      "name": "keep_data_price2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You will receive:\n1.Product Image: https://api.telegram.org/file/bot8330210226:AAG49kjm1hXXw3fVkGrTdrtiJU_fBv7nvZY/{{ $('Get Telegram File Path').item.json.result.file_path }}\n\n2. Caption: {{ $('image_new_or_no').item.json.data.campaign }}\n3. Analyzed description: {{ $('Analyze Product Image (OpenAI Vision)').item.json.choices[0].message.content }}\n4. Number of variations: 1\n\n5. Additional Comment: {{ $json.data.Comment }}\n\nAnalyze them and generate **1** distinct, advertising-ready image generation prompts.\nUse the image as the factual base and the caption to infer campaign or creative direction.\n\nIf the caption mentions a campaign (e.g., “10.10”, “Christmas”, “Songkran”), apply its mood subtly and naturally.\nIf not, make general high-quality ad visuals.\n\nReturn **only** the JSON according to the schema in the system prompt.",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "=You are an **Advertising Image Prompt Designer**.\n\n### Inputs\nYou will receive:\n- product_image_url: the Telegram image URL of the real product (treat as ground truth)\n- caption: a short instruction describing what to create (e.g., “create ads image for 10.10 campaign”)\n- analyzed_description: AI-generated analysis text describing the product image (e.g., material, color, form, background)\n\n### Goal\nAnalyze both the **product image** and the **caption** to generate exactly **N distinct, production-ready advertising image prompts**.\nEach prompt should be visually distinct and directly usable with image generation models (e.g., SDXL, Midjourney, Flux, Veo).\n\n### Core Requirements\n1. Treat the product image as factual — keep **color, shape, texture, and logo** accurate.\n2. If the caption includes a campaign (e.g., “10.10”, “Songkran”, “Christmas”), apply **seasonal or promotional context** naturally and brand-safely:\n   - **Halloween** → warm orange tones, moody light, pumpkins\n   - **Songkran** → water splash, outdoor, bright festive vibe\n   - **8.8 / 10.10 / 11.11** → energetic sale tone, bold accents, modern backgrounds\n   - **Christmas** → cozy, pine, soft warm light, red/green accents\n3. If no campaign is mentioned or caption is generic, generate clean, timeless ad concepts.\n4. For each variation, vary **at least one** of these:\n   - Scene / environment  \n   - Lighting setup  \n   - Camera angle or lens  \n   - Composition  \n   - Background texture or palette  \n   - Style or art direction  \n5. Follow strictly the JSON schema below — **no extra text** or explanation outside the JSON.\n6. If a detail cannot be inferred, set it to an empty string \"\".\n7. All “prompt” values must be **one-line**, no breaks or newlines.\n\n### Quality Rules\n- Use clear and visual language (e.g., “soft daylight on wooden desk”) instead of vague adjectives.\n- Avoid fantasy or surrealism unless explicitly stated.\n- Favor **brand-safe, realistic advertising aesthetics**: packshots, lifestyle, editorial, cinematic.\n- Preserve the identity of the product — do not modify colors, text, or logos.\n- Include camera and lighting suggestions for realism.\n\n### Return Format\nReturn a **single JSON object only** (no commentary), following this schema:",
+          "returnIntermediateSteps": true
+        }
+      },
+      "id": "bee81eef-485c-480c-b1f6-c5394bab4e65",
+      "name": "Revise Prompt Based on Feedback",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        48,
+        336
+      ],
+      "typeVersion": 2.2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6cf14a49-26a8-4b61-8e85-effc1d930143",
+              "name": "caption",
+              "type": "string",
+              "value": "={{ $json.output.caption }}"
+            },
+            {
+              "id": "a2731356-2066-4aaa-9522-bc13aa45c6d4",
+              "name": "prompt",
+              "type": "string",
+              "value": "={{ $json.output.variations[0].prompt }}"
+            },
+            {
+              "id": "2d9ea9cd-de6e-41db-8e02-f4a2f4f2d820",
+              "name": "style",
+              "type": "string",
+              "value": "={{ $json.output.variations[0].style }}"
+            },
+            {
+              "id": "815948ae-196b-431e-bcc0-93c971e01596",
+              "name": "scene",
+              "type": "string",
+              "value": "={{ $json.output.variations[0].scene }}"
+            },
+            {
+              "id": "f98c06f9-ba7c-46ab-bb2a-5adc164a7127",
+              "name": "lighting",
+              "type": "string",
+              "value": "={{ $json.output.variations[0].lighting }}"
+            },
+            {
+              "id": "4a8cab78-9679-44f9-b307-9b70f656cc6b",
+              "name": "camera",
+              "type": "string",
+              "value": "={{ $json.output.variations[0].camera }}"
+            },
+            {
+              "id": "db2068bf-a273-40d2-a3e2-4d9348826688",
+              "name": "composition",
+              "type": "string",
+              "value": "={{ $json.output.variations[0].composition }}"
+            },
+            {
+              "id": "10bd62f1-44f6-4372-86e8-b22c2072a84e",
+              "name": "background",
+              "type": "string",
+              "value": "={{ $json.output.variations[0].background }}"
+            },
+            {
+              "id": "c81ebe8b-683e-4004-9382-e340190fc5f4",
+              "name": "color_mood",
+              "type": "string",
+              "value": "={{ $json.output.variations[0].color_mood }}"
+            },
+            {
+              "id": "1dd5535f-e410-45c1-8386-5981f0c55cd5",
+              "name": "marketing_angle",
+              "type": "string",
+              "value": "={{ $json.output.variations[0].marketing_angle }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f08ff426-efa3-4ac9-be05-7b17a3d306f7",
+      "name": "Assemble Prompt Parameters",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -576,
+        304
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "={{ $('Start').item.json.message_chat_id }}",
+        "message": "=**Caption:** {{ $json.caption }}\n\n**Prompt:** {{ $json.prompt }}\n\n**Style:** {{ $json.style }}\n\n**Scene:** {{ $json.scene }}\n\n**Lighting:** {{ $json.lighting }}\n\n**Camera:** {{ $json.camera }}\n\n**Composition:**{{ $json.composition }}\n\n**Background:** {{ $json.background }}\n\n**Color Mood:** {{ $json.color_mood }}\n\n**Marketing Angle:** {{ $json.marketing_angle }}",
+        "responseType": "customForm",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Approval",
+              "fieldType": "radio",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approve"
+                  },
+                  {
+                    "option": "Reject"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Comment",
+              "placeholder": "If you Reject, please comment to revise."
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "567a1ddc-1515-4769-aabf-3d86c00acb86",
+      "name": "User Review: Approve/Reject Ad Prompt",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        -400,
+        304
+      ],
+      "webhookId": "b3340241-04c1-4a74-abf7-d4726c94c802",
+      "executeOnce": true,
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "26f47c7f-6a13-4bbe-87e3-cb980d86d2ea",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.data.Approval }}",
+              "rightValue": "Approve"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2a513fc2-74e6-472a-87c8-b3772a021ecd",
+      "name": "Check Prompt Approval (Yes/No)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -208,
+        304
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Start').item.json.message_chat_id }}",
+        "text": "Waiting image ads on process...",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "e2307230-bd04-4a72-a7ce-5aa48de35978",
+      "name": "Send a text message1",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        416,
+        288
+      ],
+      "webhookId": "9d4e8875-5724-4e8f-a2fd-2020f646aae8",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"image_url\": { \"type\": \"string\" },\n    \"caption\": { \"type\": \"string\" },\n    \"analyzed_description\": { \"type\": \"string\" },\n    \"num_variations\": { \"type\": \"integer\", \"minimum\": 1 },\n    \"variations\": {\n      \"type\": \"array\",\n      \"minItems\": 1,\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"variation_id\": { \"type\": \"integer\" },\n          \"prompt\": { \"type\": \"string\" },\n          \"style\": { \"type\": \"string\" },\n          \"scene\": { \"type\": \"string\" },\n          \"lighting\": { \"type\": \"string\" },\n          \"camera\": { \"type\": \"string\" },\n          \"composition\": { \"type\": \"string\" },\n          \"background\": { \"type\": \"string\" },\n          \"color_mood\": { \"type\": \"string\" },\n          \"post_process\": { \"type\": \"string\" },\n          \"marketing_angle\": { \"type\": \"string\" }\n        },\n        \"required\": [\"variation_id\", \"prompt\"]\n      }\n    }\n  },\n  \"required\": [\"image_url\", \"caption\", \"analyzed_description\", \"num_variations\", \"variations\"]\n}\n"
+      },
+      "id": "5f2e1c4e-7e24-45f1-92d1-2719af21f7fb",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [
+        192,
+        208
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        208
+      ],
+      "id": "d068ecb0-ddad-42a4-bf1b-128e238d0660",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "tRFwGpdl8GV30fOZ",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        48,
+        208
+      ],
+      "id": "4ec97649-c5a7-4f64-b576-cbd0679614d3",
+      "name": "grok-4-fast",
+      "credentials": {
+        "openRouterApi": {
+          "id": "tRFwGpdl8GV30fOZ",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3a3cf8ad-6d85-4e7b-8a89-64009f2ba84f",
+              "name": "data.prompt",
+              "value": "={{ $json.data.prompt }}",
+              "type": "string"
+            },
+            {
+              "id": "47a83a89-1117-46d7-bb80-77f6a221ad54",
+              "name": "data.campaign",
+              "value": "={{ $json.data.campaign }}",
+              "type": "string"
+            },
+            {
+              "id": "b6258af7-c6e7-4545-be94-7ff2487ad225",
+              "name": "message.photo[3].file_id",
+              "value": "={{ $('Start').item.json.message_photo[3].file_id }}",
+              "type": "string"
+            },
+            {
+              "id": "89cdb36f-5784-484c-b83b-d864cbf678f2",
+              "name": "data.approved",
+              "value": "={{ $('Start').item.json.data_approved }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {
+          "dotNotation": true
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -848,
+        80
+      ],
+      "id": "6fb965eb-2b75-44d5-9515-8511dfaee221",
+      "name": "merge"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "={{ $('Start').item.json.message_chat_id }}",
+        "message": "ระบุความต้องการ",
+        "responseType": "customForm",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "campaign",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1072,
+        80
+      ],
+      "id": "74b9f153-0037-488d-8e37-2e13bf5f5f73",
+      "name": "image_to_image1",
+      "webhookId": "e1f14a62-8841-423f-adc2-f11389422d54",
+      "alwaysOutputData": false,
+      "executeOnce": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/bot8330210226:AAG49kjm1hXXw3fVkGrTdrtiJU_fBv7nvZY/getFile?file_id={{ $('Start').item.json.message_photo[3].file_id }}",
+        "options": {}
+      },
+      "id": "98bdabae-27c4-403a-adc4-4621897d268d",
+      "name": "Get Telegram File Path",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -368,
+        80
+      ],
+      "typeVersion": 4.2,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "text": "=Depcribe the product and brand in this image in full detail. Fully ignore the background. Focus ONLY on the product.",
+        "imageUrls": "=https://api.telegram.org/file/bot8330210226:AAG49kjm1hXXw3fVkGrTdrtiJU_fBv7nvZY/{{ $json.result.file_path }}",
+        "simplify": false,
+        "options": {}
+      },
+      "id": "7ef3cdf8-3d5c-4df6-b62c-c677e53ee2ed",
+      "name": "Analyze Product Image (OpenAI Vision)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        -160,
+        80
+      ],
+      "typeVersion": 1.8,
+      "credentials": {
+        "openAiApi": {
+          "id": "bnW5IDQ3uNDtVlAF",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "4RsOafwqPCwgTcUA",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/4RsOafwqPCwgTcUA",
+          "cachedResultName": "keep_data_price"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        400,
+        16
+      ],
+      "id": "1b0905c4-93f1-475c-a50b-87b8b51aa8b7",
+      "name": "keep_data_price"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You will receive:\nhttps://api.telegram.org/file/bot8330210226:AAG49kjm1hXXw3fVkGrTdrtiJU_fBv7nvZY/{{ $('Get Telegram File Path').item.json.result.file_path }}\n\n2. Caption: {{ $('image_new_or_no').item.json.data.campaign }}\n3. Analyzed description: {{ $json.choices[0].message.content }}\n4. Number of variations: 1\n\nAnalyze them and generate **1** distinct, advertising-ready image generation prompts.\nUse the image as the factual base and the caption to infer campaign or creative direction.\n\nIf the caption mentions a campaign (e.g., “10.10”, “Christmas”, “Songkran”), apply its mood subtly and naturally.\nIf not, make general high-quality ad visuals.\n\nReturn **only** the JSON according to the schema in the system prompt.",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "=You are an **Advertising Image Prompt Designer**.\n\n### Inputs\nYou will receive:\n- product_image_url: the Telegram image URL of the real product (treat as ground truth)\n- caption: a short instruction describing what to create (e.g., “create ads image for 10.10 campaign”)\n- analyzed_description: AI-generated analysis text describing the product image (e.g., material, color, form, background)\n\n### Goal\nAnalyze both the **product image** and the **caption** to generate exactly **N distinct, production-ready advertising image prompts**.\nEach prompt should be visually distinct and directly usable with image generation models (e.g., SDXL, Midjourney, Flux, Veo).\n\n### Core Requirements\n1. Treat the product image as factual — keep **color, shape, texture, and logo** accurate.\n2. If the caption includes a campaign (e.g., “10.10”, “Songkran”, “Christmas”), apply **seasonal or promotional context** naturally and brand-safely:\n   - **Halloween** → warm orange tones, moody light, pumpkins\n   - **Songkran** → water splash, outdoor, bright festive vibe\n   - **8.8 / 10.10 / 11.11** → energetic sale tone, bold accents, modern backgrounds\n   - **Christmas** → cozy, pine, soft warm light, red/green accents\n3. If no campaign is mentioned or caption is generic, generate clean, timeless ad concepts.\n4. For each variation, vary **at least one** of these:\n   - Scene / environment  \n   - Lighting setup  \n   - Camera angle or lens  \n   - Composition  \n   - Background texture or palette  \n   - Style or art direction  \n5. Follow strictly the JSON schema below — **no extra text** or explanation outside the JSON.\n6. If a detail cannot be inferred, set it to an empty string \"\".\n7. All “prompt” values must be **one-line**, no breaks or newlines.\n\n### Quality Rules\n- Use clear and visual language (e.g., “soft daylight on wooden desk”) instead of vague adjectives.\n- Avoid fantasy or surrealism unless explicitly stated.\n- Favor **brand-safe, realistic advertising aesthetics**: packshots, lifestyle, editorial, cinematic.\n- Preserve the identity of the product — do not modify colors, text, or logos.\n- Include camera and lighting suggestions for realism.\n\n### Return Format\nReturn a **single JSON object only** (no commentary), following this schema:",
+          "returnIntermediateSteps": true
+        }
+      },
+      "id": "324c1ab0-7c95-4dd9-8a99-f83fd05efd29",
+      "name": "Generate Ad Prompt Draft (from Image Analysis)",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 2.2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "message_photo",
+              "type": "any"
+            },
+            {
+              "name": "data_approved",
+              "type": "any"
+            },
+            {
+              "name": "message_chat_id",
+              "type": "any"
+            }
+          ]
+        }
+      },
+      "id": "c864d1f0-61b3-43db-bb3e-1441ef1303b2",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -1280,
+        80
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "grok-4-fast1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Social Media Caption",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Social Media Caption",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Generate Social Media Caption",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Final Ad Image (OpenAI Vision)": {
+      "main": [
+        [
+          {
+            "node": "Generate Social Media Caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Social Media Caption": {
+      "main": [
+        [
+          {
+            "node": "User Review: Approve/Reject Caption",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "keep_data_price1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "keep_data_price1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Review: Approve/Reject Caption": {
+      "main": [
+        [
+          {
+            "node": "Check Caption Approval (Yes/No)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Caption Approval (Yes/No)": {
+      "main": [
+        [
+          {
+            "node": "Preview Post Image (Telegram)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Social Media Caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preview Post Image (Telegram)": {
+      "main": [
+        [
+          {
+            "node": "Preview Post Caption (Telegram)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preview Post Caption (Telegram)": {
+      "main": [
+        [
+          {
+            "node": "Publish Post to Facebook Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Check Fal.AI Image Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Fal.AI Input Fields": {
+      "main": [
+        [
+          {
+            "node": "Call Fal.AI API (nano-banana model)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Fal.AI API (nano-banana model)": {
+      "main": [
+        [
+          {
+            "node": "Check Fal.AI Image Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "keep_data_price2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Fal.AI Image Status": {
+      "main": [
+        [
+          {
+            "node": "Verify Image Generation Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Image Generation Completed": {
+      "main": [
+        [
+          {
+            "node": "Retrieve Generated Image URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve Generated Image URL": {
+      "main": [
+        [
+          {
+            "node": "Send Generated Image to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Generated Image to Telegram": {
+      "main": [
+        [
+          {
+            "node": "User Review: Approve/Reject Generated Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Review: Approve/Reject Generated Image": {
+      "main": [
+        [
+          {
+            "node": "Check Image Approval (Yes/No)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Image Approval (Yes/No)": {
+      "main": [
+        [
+          {
+            "node": "Analyze Final Ad Image (OpenAI Vision)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Fal.AI Input Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revise Prompt Based on Feedback": {
+      "main": [
+        [
+          {
+            "node": "Assemble Prompt Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "keep_data_price",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Prompt Parameters": {
+      "main": [
+        [
+          {
+            "node": "User Review: Approve/Reject Ad Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Review: Approve/Reject Ad Prompt": {
+      "main": [
+        [
+          {
+            "node": "Check Prompt Approval (Yes/No)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Prompt Approval (Yes/No)": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Revise Prompt Based on Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message1": {
+      "main": [
+        [
+          {
+            "node": "Prepare Fal.AI Input Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Generate Ad Prompt Draft (from Image Analysis)",
+            "type": "ai_outputParser",
+            "index": 0
+          },
+          {
+            "node": "Revise Prompt Based on Feedback",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Ad Prompt Draft (from Image Analysis)",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Revise Prompt Based on Feedback",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "grok-4-fast": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Ad Prompt Draft (from Image Analysis)",
+            "type": "ai_languageModel",
+            "index": 1
+          },
+          {
+            "node": "Revise Prompt Based on Feedback",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "merge": {
+      "main": [
+        [
+          {
+            "node": "Get Telegram File Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "image_to_image1": {
+      "main": [
+        [
+          {
+            "node": "merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Telegram File Path": {
+      "main": [
+        [
+          {
+            "node": "Analyze Product Image (OpenAI Vision)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Product Image (OpenAI Vision)": {
+      "main": [
+        [
+          {
+            "node": "Generate Ad Prompt Draft (from Image Analysis)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Ad Prompt Draft (from Image Analysis)": {
+      "main": [
+        [
+          {
+            "node": "Assemble Prompt Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "keep_data_price",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "image_to_image1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "12afebe8-3ce9-4a46-a3f9-37f7d9396abc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f60c5e248de1b49fb44a1dabf6f5785aa82a044666c84503cb84648d45cc8e0b"
+  },
+  "id": "rbs62NZXnwP3FtPq",
+  "tags": []
+}

@@ -1,0 +1,562 @@
+{
+  "name": "Facebook Ad Analysis & A/B Testing",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "6929621c-a60c-42ca-b9a9-a4cc032df5ca",
+      "name": "Schedule Daily 9AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        1408
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Facebook Ad Analysis"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Competitor_Data"
+        },
+        "options": {}
+      },
+      "id": "e3d22b40-18bd-49b5-b00f-2451acc7c6c2",
+      "name": "Read Competitor Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -208,
+        1312
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ANEyPhCaKnqWBtYV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=1",
+          "mode": "id",
+          "cachedResultName": "CREMO_Templates"
+        },
+        "options": {}
+      },
+      "id": "f718c56f-e4a0-472b-a126-43d1521a9b83",
+      "name": "Read CREMO Templates",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -208,
+        1504
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ANEyPhCaKnqWBtYV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=2",
+          "mode": "id",
+          "cachedResultName": "Market_Intelligence"
+        },
+        "options": {}
+      },
+      "id": "5bfc719f-40f5-4a47-ad26-d73f88ad79a8",
+      "name": "Read Market Intelligence",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -208,
+        1712
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ANEyPhCaKnqWBtYV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v21.0/{{ $json.YOUR_PAGE_ID }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "name,fan_count,followers_count,engagement,rating_count,overall_star_rating"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4836511f-a04f-42b1-b93f-ed486bc1e94b",
+      "name": "Fetch Own Page Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -208,
+        1104
+      ],
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "x50Ax7LoKFG46jHC",
+          "name": "Cremo Facebook Messenger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "7102e7ab-a913-4149-9710-6cc20abb4ff2",
+      "name": "Merge All Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        0,
+        1408
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Transform and calculate metrics\nconst competitorData = $input.first().json;\nconst templates = $input.item(1).json;\nconst marketIntel = $input.item(2).json;\nconst ownPage = $input.item(3).json;\n\n// Calculate competitor averages\nconst competitors = [];\nfor (const item of $input.all()) {\n  if (item.json.page_name && item.json.page_name !== ownPage.name) {\n    competitors.push({\n      page_name: item.json.page_name,\n      page_likes: item.json.page_likes || item.json.pageLikeCount || 0,\n      engagement: {\n        likes: item.json.like || item.json.likes || 0,\n        shares: item.json.shares || 0,\n        comments: item.json.comments || 0,\n        views: item.json.viewsCount || 0\n      },\n      ad_format: item.json.display_format || item.json.displayFormat,\n      cta_type: item.json.cta_type || item.json.ctaType,\n      ad_text: item.json.ad_body_text || item.json.text\n    });\n  }\n}\n\n// Calculate averages\nconst avgLikes = competitors.reduce((sum, c) => sum + c.page_likes, 0) / competitors.length;\nconst avgEngagement = competitors.reduce((sum, c) => {\n  return sum + (c.engagement.likes + c.engagement.shares + c.engagement.comments);\n}, 0) / competitors.length;\n\n// Find top performers\nconst topPerformers = competitors\n  .sort((a, b) => b.page_likes - a.page_likes)\n  .slice(0, 5);\n\n// Extract winning patterns\nconst formatCounts = {};\nconst ctaCounts = {};\n\ncompetitors.forEach(c => {\n  formatCounts[c.ad_format] = (formatCounts[c.ad_format] || 0) + 1;\n  ctaCounts[c.cta_type] = (ctaCounts[c.cta_type] || 0) + 1;\n});\n\nconst winningFormat = Object.keys(formatCounts)\n  .reduce((a, b) => formatCounts[a] > formatCounts[b] ? a : b);\n\nconst winningCTA = Object.keys(ctaCounts)\n  .reduce((a, b) => ctaCounts[a] > ctaCounts[b] ? a : b);\n\nreturn {\n  json: {\n    own_page: {\n      name: ownPage.name,\n      fans: ownPage.fan_count,\n      followers: ownPage.followers_count,\n      rating: ownPage.overall_star_rating\n    },\n    competitor_summary: {\n      count: competitors.length,\n      avg_likes: Math.round(avgLikes),\n      avg_engagement: Math.round(avgEngagement),\n      top_performers: topPerformers.map(p => ({\n        name: p.page_name,\n        likes: p.page_likes\n      }))\n    },\n    winning_patterns: {\n      most_used_format: winningFormat,\n      most_used_cta: winningCTA,\n      format_distribution: formatCounts,\n      cta_distribution: ctaCounts\n    },\n    templates_available: templates,\n    market_insights: marketIntel,\n    gaps: {\n      likes_gap: avgLikes - ownPage.fan_count,\n      engagement_gap_percent: ((avgEngagement - 0) / avgEngagement * 100).toFixed(2)\n    }\n  }\n};"
+      },
+      "id": "c000215f-486c-4006-99e0-46472e0cf3bc",
+      "name": "Analyze Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        1408
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o",
+          "cachedResultName": "GPT-4O"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a Facebook Ads strategist for CREMO ice cream franchise analyzing competitor performance and recommending A/B test strategies.\n\nYour task:\n1. Analyze performance gaps between own page and competitors\n2. Identify winning patterns from competitor data\n3. Match patterns with CREMO templates and market intelligence\n4. Recommend 3-5 specific A/B test variations\n5. Generate image prompts for each test variation\n\nOutput format: JSON with structure:\n{\n  \"analysis\": {\n    \"performance_gap\": \"description\",\n    \"key_insights\": [\"insight1\", \"insight2\", ...],\n    \"opportunities\": [\"opp1\", \"opp2\", ...]\n  },\n  \"recommendations\": {\n    \"template_matches\": [{\"template\": \"name\", \"reason\": \"why\"}],\n    \"regional_focus\": \"which region\",\n    \"tone_style\": \"recommended tone\"\n  },\n  \"ab_tests\": [\n    {\n      \"test_id\": \"A1\",\n      \"variation\": \"description\",\n      \"template\": \"template name\",\n      \"image_prompt\": \"detailed prompt\",\n      \"ad_copy\": \"suggested copy\",\n      \"cta\": \"CTA text\",\n      \"expected_impact\": \"why this will work\"\n    }\n  ]\n}",
+              "role": "system"
+            },
+            {
+              "content": "=Analyze this data and provide recommendations:\n\n{{ JSON.stringify($json, null, 2) }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "id": "be7ea81b-675a-41f8-9854-fd3c04a7f7fa",
+      "name": "AI Strategy Analysis",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        400,
+        1408
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "bnW5IDQ3uNDtVlAF",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "analysis_summary",
+              "name": "analysis_summary",
+              "value": "={{ $json.message.content.analysis }}",
+              "type": "object"
+            },
+            {
+              "id": "recommendations",
+              "name": "recommendations",
+              "value": "={{ $json.message.content.recommendations }}",
+              "type": "object"
+            },
+            {
+              "id": "ab_tests",
+              "name": "ab_tests",
+              "value": "={{ $json.message.content.ab_tests }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0c9ba43d-a1e3-4059-bb4b-4341a7e080b2",
+      "name": "Format Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        1392
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=3",
+          "mode": "id",
+          "cachedResultName": "Analysis_Results"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $json.timestamp }}",
+            "performance_gap": "={{ $json.analysis_summary.performance_gap }}",
+            "key_insights": "={{ JSON.stringify($json.analysis_summary.key_insights) }}",
+            "template_recommendations": "={{ JSON.stringify($json.recommendations.template_matches) }}",
+            "regional_focus": "={{ $json.recommendations.regional_focus }}",
+            "ab_test_count": "={{ $json.ab_tests.length }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "id": "performance_gap",
+              "displayName": "performance_gap",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "id": "key_insights",
+              "displayName": "key_insights",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "id": "template_recommendations",
+              "displayName": "template_recommendations",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "id": "regional_focus",
+              "displayName": "regional_focus",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "id": "ab_test_count",
+              "displayName": "ab_test_count",
+              "required": false,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c70629ad-f894-4e1d-80f8-002ee144d012",
+      "name": "Save Analysis Summary",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        864,
+        1296
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ANEyPhCaKnqWBtYV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d8186d3e-b7e5-42f1-9f4a-8f3b95a25736",
+      "name": "Split A/B Tests",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        848,
+        1568
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=4",
+          "mode": "id",
+          "cachedResultName": "AB_Test_Queue"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $('Format Output').item.json.timestamp }}",
+            "test_id": "={{ $json.test_id }}",
+            "template": "={{ $json.template }}",
+            "variation": "={{ $json.variation }}",
+            "image_prompt": "={{ $json.image_prompt }}",
+            "ad_copy": "={{ $json.ad_copy }}",
+            "cta": "={{ $json.cta }}",
+            "expected_impact": "={{ $json.expected_impact }}",
+            "status": "=pending"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "type": "string"
+            },
+            {
+              "id": "test_id",
+              "displayName": "test_id",
+              "type": "string"
+            },
+            {
+              "id": "template",
+              "displayName": "template",
+              "type": "string"
+            },
+            {
+              "id": "variation",
+              "displayName": "variation",
+              "type": "string"
+            },
+            {
+              "id": "image_prompt",
+              "displayName": "image_prompt",
+              "type": "string"
+            },
+            {
+              "id": "ad_copy",
+              "displayName": "ad_copy",
+              "type": "string"
+            },
+            {
+              "id": "cta",
+              "displayName": "cta",
+              "type": "string"
+            },
+            {
+              "id": "expected_impact",
+              "displayName": "expected_impact",
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "11bd639f-b44c-4c3f-9523-7cb0bc9dc5c8",
+      "name": "Save A/B Tests to Queue",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1040,
+        1568
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ANEyPhCaKnqWBtYV",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Daily 9AM": {
+      "main": [
+        [
+          {
+            "node": "Read Competitor Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read CREMO Templates",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Market Intelligence",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Own Page Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Competitor Data": {
+      "main": [
+        [
+          {
+            "node": "Merge All Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read CREMO Templates": {
+      "main": [
+        [
+          {
+            "node": "Merge All Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge All Data": {
+      "main": [
+        [
+          {
+            "node": "Analyze Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Metrics": {
+      "main": [
+        [
+          {
+            "node": "AI Strategy Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Strategy Analysis": {
+      "main": [
+        [
+          {
+            "node": "Format Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Output": {
+      "main": [
+        [
+          {
+            "node": "Save Analysis Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split A/B Tests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split A/B Tests": {
+      "main": [
+        [
+          {
+            "node": "Save A/B Tests to Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "02ca1e4f-9422-4967-a485-5e663013c54e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f60c5e248de1b49fb44a1dabf6f5785aa82a044666c84503cb84648d45cc8e0b"
+  },
+  "id": "tEOYKf88Pi5VzjSO",
+  "tags": []
+}

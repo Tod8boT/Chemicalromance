@@ -1,0 +1,1337 @@
+{
+  "name": "telegram_workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e7211e46-0f49-46a0-9cb7-e83fed150efd",
+                    "leftValue": "={{ $json.message.photo }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "array",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Photo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "85edf561-8f5e-4215-9e19-78ff0392068e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Text"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -592,
+        560
+      ],
+      "id": "a09ec403-2273-46df-9b86-80b3cb346802",
+      "name": "Switch",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "ff2b3ce3-661a-4b38-b88b-8d50a31a4fd2",
+      "name": "Receive Image (Telegram Trigger)",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "position": [
+        -816,
+        576
+      ],
+      "webhookId": "3bbd63a0-7cbc-4a27-a381-23d83301a19f",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Receive Image (Telegram Trigger)').item.json.message.chat.id }}",
+        "text": "ต้องการอะไรนะ ขออีกรอบ",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -368,
+        768
+      ],
+      "id": "7380f576-ad73-4b4c-a526-403828ec6d2d",
+      "name": "Send a text message4",
+      "webhookId": "f79ebb63-032f-4b1f-8d9b-0e7e537a9648",
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Receive Image (Telegram Trigger)').item.json.message.chat.id }}",
+        "text": "อยากให้ทำอะไรกับภาพนี้",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "สร้างภาพ",
+                    "additionalFields": {
+                      "callback_data": "=create_pic"
+                    }
+                  },
+                  {
+                    "text": "แก้ไขภาพ",
+                    "additionalFields": {
+                      "callback_data": "=edit_pic"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "เก็บภาพ",
+                    "additionalFields": {
+                      "callback_data": "=keep_pic"
+                    }
+                  },
+                  {
+                    "text": "วิเคราะห์ภาพ",
+                    "additionalFields": {
+                      "callback_data": "=analysis"
+                    }
+                  },
+                  {
+                    "text": "แกะตัวอักษร",
+                    "additionalFields": {
+                      "callback_data": "=ocr"
+                    }
+                  },
+                  {
+                    "text": "แก้บิลน้ำมัน",
+                    "additionalFields": {
+                      "callback_data": "=oil"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -368,
+        256
+      ],
+      "id": "c1c0f2d1-ecde-4bf2-98aa-5a63bf50b99d",
+      "name": "image",
+      "webhookId": "5b6aeb08-5c40-4feb-ad07-1c3ba645318a",
+      "executeOnce": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Receive Image (Telegram Trigger)').item.json.message.chat.id }}",
+        "text": "อยากให้ช่วยอะไร",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "ขอลิ้งcremo",
+                    "additionalFields": {
+                      "callback_data": "=cremo | {{ $('Receive Image (Telegram Trigger)').item.json.message.photo[2].file_id }}"
+                    }
+                  },
+                  {
+                    "text": "ข้อมูลลุกค้า",
+                    "additionalFields": {
+                      "callback_data": "=data | {{ $('Receive Image (Telegram Trigger)').item.json.message.photo[2].file_id }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "check_admin",
+                    "additionalFields": {
+                      "callback_data": "=check_admin | {{ $('Receive Image (Telegram Trigger)').item.json.message.photo[2].file_id }}"
+                    }
+                  },
+                  {
+                    "text": "update_โปรโมชั่น",
+                    "additionalFields": {
+                      "callback_data": "=promotion | {{ $('Receive Image (Telegram Trigger)').item.json.message.photo[2].file_id }}"
+                    }
+                  },
+                  {
+                    "text": "ขอข้อมูลค่าใช้จ่าย",
+                    "additionalFields": {
+                      "callback_data": "=check_price | {{ $('Receive Image (Telegram Trigger)').item.json.message.photo[2].file_id }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "check_post",
+                    "additionalFields": {
+                      "callback_data": "=check_post | {{ $('Receive Image (Telegram Trigger)').item.json.message.photo[2].file_id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -368,
+        576
+      ],
+      "id": "9142061c-7577-4cee-9f99-aca71a38c816",
+      "name": "text",
+      "webhookId": "5b6aeb08-5c40-4feb-ad07-1c3ba645318a",
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e7211e46-0f49-46a0-9cb7-e83fed150efd",
+                    "leftValue": "={{ $json.result.reply_markup.inline_keyboard[0][0].callback_data }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "create_pic"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.result.reply_markup.inline_keyboard[0][1].callback_data }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "85edf561-8f5e-4215-9e19-78ff0392068e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "edit_pic"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2eb551df-d86a-4c20-b4da-dc35729f0c29",
+                    "leftValue": "={{ $json.result.reply_markup.inline_keyboard[1][0].callback_data }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "keep_pic"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "605438ae-524e-40de-812c-609c11c9ac95",
+                    "leftValue": "={{ $json.result.reply_markup.inline_keyboard[1][1].callback_data }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Image analysis"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5bbc50b0-a387-4ffd-8a59-8c065c49703b",
+                    "leftValue": "={{ $json.result.reply_markup.inline_keyboard[1][2].callback_data }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ocr"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0dd55dab-d54f-4c25-9227-8f72d103c70e",
+                    "leftValue": "={{ $json.result.reply_markup.inline_keyboard[1][3].callback_data }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "oil"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -144,
+        176
+      ],
+      "id": "fa82dcc2-cdaa-4355-9ade-1960b39ba4e2",
+      "name": "Switch2",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e7211e46-0f49-46a0-9cb7-e83fed150efd",
+                    "leftValue": "=cremo | {{ $('Receive Image (Telegram Trigger)').item.json.message.photo[2].file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "array",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cremo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "=data | {{ $('Receive Image (Telegram Trigger)').item.json.message.photo[2].file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "85edf561-8f5e-4215-9e19-78ff0392068e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "data"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2eb551df-d86a-4c20-b4da-dc35729f0c29",
+                    "leftValue": "=check_admin | {{ $('Receive Image (Telegram Trigger)').item.json.message.photo[2].file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "check_admin"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "605438ae-524e-40de-812c-609c11c9ac95",
+                    "leftValue": "=promotion | {{ $('Receive Image (Telegram Trigger)').item.json.message.photo[2].file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "promotion"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5bbc50b0-a387-4ffd-8a59-8c065c49703b",
+                    "leftValue": "=check_price | {{ $('Receive Image (Telegram Trigger)').item.json.message.photo[2].file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "check_price"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8deea768-cbc9-483d-ab28-6985fe567e58",
+                    "leftValue": "=check_post | {{ $('Receive Image (Telegram Trigger)').item.json.message.photo[2].file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "check_post"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -144,
+        496
+      ],
+      "id": "142881e6-b49a-4176-9d71-88b9aa70d269",
+      "name": "Switch3",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Receive Image (Telegram Trigger)').item.json.message.chat.id }}",
+        "text": "อยากให้ทำอะไรกับภาพนี้",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "สร้างภาพ cremo",
+                    "additionalFields": {
+                      "callback_data": "=cremo_image"
+                    }
+                  },
+                  {
+                    "text": "สร้างภาพ สินค้าใหม่",
+                    "additionalFields": {
+                      "callback_data": "=image_templete"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        80,
+        -48
+      ],
+      "id": "1d64fb6e-6785-4a78-a7d5-2c44827036ce",
+      "name": "image_choice",
+      "webhookId": "5b6aeb08-5c40-4feb-ad07-1c3ba645318a",
+      "executeOnce": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e7211e46-0f49-46a0-9cb7-e83fed150efd",
+                    "leftValue": "={{ $json.result.reply_markup.inline_keyboard[0][0].callback_data }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cremo_image"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.result.reply_markup.inline_keyboard[0][1].callback_data }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "85edf561-8f5e-4215-9e19-78ff0392068e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "image_templete"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        288,
+        -64
+      ],
+      "id": "ef16f0c9-deb0-4e90-ad6d-bc3276f0cd4d",
+      "name": "Switch4",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "={{ $('Receive Image (Telegram Trigger)').item.json.message.chat.id }}",
+        "message": "ใช้ templete ในการสร้างภาพหรือไม่",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 2,
+              "resumeUnit": "minutes"
+            }
+          },
+          "appendAttribution": false
+        }
+      },
+      "id": "d750f5e3-d2c8-43e8-b188-55941d42bc16",
+      "name": "Send message and wait for response",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        528,
+        -144
+      ],
+      "webhookId": "9d4e8875-5724-4e8f-a2fd-2020f646aae8",
+      "typeVersion": 1.2,
+      "alwaysOutputData": false,
+      "executeOnce": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "26f47c7f-6a13-4bbe-87e3-cb980d86d2ea",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "41721041-9b25-4c5d-ab02-178bf77acc72",
+      "name": "Check templete Approval (Yes/No)",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        752,
+        -144
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Receive Image (Telegram Trigger)').item.json.message.chat.id }}",
+        "text": "ต้องการอะไรนะ ขออีกรอบ",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        528,
+        48
+      ],
+      "id": "27cf1122-8fe4-4b26-9398-214dbbaca6e4",
+      "name": "Send a text message",
+      "webhookId": "f79ebb63-032f-4b1f-8d9b-0e7e537a9648",
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "1m49cfbWcQVrR3FN",
+          "mode": "list"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_photo": "={{ $('Receive Image (Telegram Trigger)').item.json.message.photo }}",
+            "data_approved": "={{ $('Check templete Approval (Yes/No)').item.json.data.approved }}",
+            "message_chat_id": "={{ $('Receive Image (Telegram Trigger)').item.json.message.chat.id }}"
+          },
+          "matchingColumns": [
+            "message_photo",
+            "data_approved",
+            "message_chat_id"
+          ],
+          "schema": [
+            {
+              "id": "message_photo",
+              "displayName": "message_photo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "data_approved",
+              "displayName": "data_approved",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "message_chat_id",
+              "displayName": "message_chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        -80
+      ],
+      "name": "Call create_image_no_templete",
+      "id": "947d2bb6-e0e9-4d52-8431-63592ab74fdf"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "CUiFChIrnD8calHH",
+          "mode": "list"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_chat_id": "={{ $('Receive Image (Telegram Trigger)').item.json.message.chat.id }}",
+            "data_approved": "={{ $('Send message and wait for response').item.json.data.approved }}",
+            "message_photo": "={{ $('Receive Image (Telegram Trigger)').item.json.message.photo }}"
+          },
+          "matchingColumns": [
+            "message_chat_id",
+            "data_approved",
+            "message_photo"
+          ],
+          "schema": [
+            {
+              "id": "message_chat_id",
+              "displayName": "message_chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "data_approved",
+              "displayName": "data_approved",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "message_photo",
+              "displayName": "message_photo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        -256
+      ],
+      "name": "Call create_image_with_templete",
+      "id": "4abb8c4f-8750-40b2-8e33-60121fa9b41e"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Receive Image (Telegram Trigger)').item.json.message.chat.id }}",
+        "text": "อยากให้ทำอะไรกับภาพนี้",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "เพิ่มลูกค้า",
+                    "additionalFields": {
+                      "callback_data": "=add_customer"
+                    }
+                  },
+                  {
+                    "text": "สร้างpdf",
+                    "additionalFields": {
+                      "callback_data": "=create_pdf"
+                    }
+                  },
+                  {
+                    "text": "ดูข้อมูลเดือนนี้",
+                    "additionalFields": {
+                      "callback_data": "data_mounth"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        192,
+        400
+      ],
+      "id": "c23ba7c4-0b60-4b0a-94d3-85cfeeeca530",
+      "name": "cremo_choice",
+      "webhookId": "5b6aeb08-5c40-4feb-ad07-1c3ba645318a",
+      "executeOnce": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e7211e46-0f49-46a0-9cb7-e83fed150efd",
+                    "leftValue": "={{ $json.result.reply_markup.inline_keyboard[0][0].callback_data }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "add_customer"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.result.reply_markup.inline_keyboard[0][1].callback_data }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "85edf561-8f5e-4215-9e19-78ff0392068e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "create_pdf"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f463daad-b87c-4a0c-a6b6-07ddd18e83f1",
+                    "leftValue": "={{ $json.result.reply_markup.inline_keyboard[0][1].callback_data }}",
+                    "rightValue": "data_mounth",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "data_mounth"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        384,
+        384
+      ],
+      "id": "cd3a5ed8-f1cd-44e9-aa53-ea37d3340bfa",
+      "name": "Switch5",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Receive Image (Telegram Trigger)').item.json.message.chat.id }}",
+        "text": "ต้องการอะไรนะ ขออีกรอบ",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        672
+      ],
+      "id": "b5890c0a-9e48-4b41-a2fe-9f655627abc1",
+      "name": "Send a text message1",
+      "webhookId": "f79ebb63-032f-4b1f-8d9b-0e7e537a9648",
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        672,
+        512
+      ],
+      "id": "f4efbb57-b219-4c88-a7c6-3d7c4905d9a6",
+      "name": "Execute Workflow"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive Image (Telegram Trigger)": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "image": {
+      "main": [
+        [
+          {
+            "node": "Switch2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "text": {
+      "main": [
+        [
+          {
+            "node": "Switch3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch2": {
+      "main": [
+        [
+          {
+            "node": "image_choice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "image_choice": {
+      "main": [
+        [
+          {
+            "node": "Switch4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch4": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "Check templete Approval (Yes/No)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check templete Approval (Yes/No)": {
+      "main": [
+        [
+          {
+            "node": "Call create_image_with_templete",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call create_image_no_templete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch3": {
+      "main": [
+        [
+          {
+            "node": "cremo_choice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cremo_choice": {
+      "main": [
+        [
+          {
+            "node": "Switch5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch5": {
+      "main": [
+        [],
+        [],
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "85dd4163-81f1-41c0-8a53-85d8ed0f1b74",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f60c5e248de1b49fb44a1dabf6f5785aa82a044666c84503cb84648d45cc8e0b"
+  },
+  "id": "QvgQdZ81AemlcpxE",
+  "tags": [
+    {
+      "updatedAt": "2025-11-08T13:47:15.333Z",
+      "createdAt": "2025-11-08T13:47:15.333Z",
+      "id": "3riaJyWHFsDUQ4Jz",
+      "name": "ROUTER_MAIN_TG"
+    }
+  ]
+}
