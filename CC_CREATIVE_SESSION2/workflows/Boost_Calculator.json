@@ -1,0 +1,190 @@
+{
+  "name": "Boost_Calculator",
+  "description": "Calculate engagement boost scores and recommend posting strategies",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "boost-calculate",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "boost-webhook",
+      "name": "Boost Calculation Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Boost Score Calculator\n// Factors: Time of day, Day of week, Content type, Hashtags, Arc curve usage, Campaign\n\nconst data = $input.first().json;\n\n// Time scoring (Thailand time)\nfunction getTimeScore(hour) {\n  // Peak hours: 12-14 (lunch), 19-22 (evening)\n  if ((hour >= 12 && hour <= 14) || (hour >= 19 && hour <= 22)) return 100;\n  // Good hours: 9-11, 15-18\n  if ((hour >= 9 && hour <= 11) || (hour >= 15 && hour <= 18)) return 75;\n  // Off-peak: 7-8, 23-24\n  if ((hour >= 7 && hour <= 8) || hour === 23) return 50;\n  // Low engagement: 0-6, 1-6\n  return 25;\n}\n\n// Day of week scoring\nfunction getDayScore(day) {\n  // 0 = Sunday, 6 = Saturday\n  // Best: Wednesday, Thursday, Friday\n  if (day >= 3 && day <= 5) return 100;\n  // Good: Monday, Tuesday, Saturday\n  if ([1, 2, 6].includes(day)) return 75;\n  // Lower: Sunday\n  return 60;\n}\n\n// Content type scoring\nfunction getContentTypeScore(type, hasArcCurve) {\n  const baseScores = {\n    'image': 80,\n    'video': 100,\n    'carousel': 90,\n    'text': 50\n  };\n  \n  let score = baseScores[type] || 70;\n  \n  // Arc curve bonus (brand critical feature)\n  if (hasArcCurve) {\n    score += 20; // Significant boost for using arc curve text\n  }\n  \n  return Math.min(score, 100);\n}\n\n// Hashtag scoring\nfunction getHashtagScore(hashtags) {\n  const count = hashtags.length;\n  // Optimal: 5-8 hashtags\n  if (count >= 5 && count <= 8) return 100;\n  // Good: 3-4 or 9-10\n  if (count >= 3 && count <= 10) return 75;\n  // Too few or too many\n  if (count < 3) return 40;\n  return 50;\n}\n\n// Campaign bonus\nfunction getCampaignBonus(campaign) {\n  const bonuses = {\n    '10.10': 30,\n    '11.11': 30,\n    '12.12': 30,\n    'christmas': 25,\n    'newyear': 25,\n    'songkran': 20,\n    'halloween': 15\n  };\n  \n  return bonuses[campaign?.toLowerCase()] || 0;\n}\n\n// Calculate scores\nconst now = new Date();\nconst hour = data.scheduled_hour || now.getHours();\nconst day = data.scheduled_day || now.getDay();\n\nconst timeScore = getTimeScore(hour);\nconst dayScore = getDayScore(day);\nconst contentScore = getContentTypeScore(\n  data.content_type || 'image',\n  data.has_arc_curve || false\n);\nconst hashtagScore = getHashtagScore(data.hashtags || []);\nconst campaignBonus = getCampaignBonus(data.campaign);\n\n// Weighted average\nconst baseScore = (\n  timeScore * 0.25 +\n  dayScore * 0.20 +\n  contentScore * 0.30 +\n  hashtagScore * 0.25\n);\n\n// Apply campaign bonus\nconst finalScore = Math.min(baseScore + campaignBonus, 100);\n\n// Recommendations\nconst recommendations = [];\n\nif (timeScore < 75) {\n  recommendations.push('⏰ Consider posting during peak hours (12-14 or 19-22 Thailand time)');\n}\n\nif (dayScore < 75) {\n  recommendations.push('📅 Best engagement on Wed-Fri, consider rescheduling');\n}\n\nif (!data.has_arc_curve && data.content_type === 'image') {\n  recommendations.push('🎨 BRAND TIP: Add arc curve text overlay for +20 boost points!');\n}\n\nif (hashtagScore < 75) {\n  const count = (data.hashtags || []).length;\n  if (count < 5) {\n    recommendations.push(`#️⃣ Add ${5 - count} more hashtags (optimal: 5-8)`);\n  } else {\n    recommendations.push('#️⃣ Too many hashtags, reduce to 8-10 max');\n  }\n}\n\nif (campaignBonus === 0 && data.campaign && data.campaign !== 'none') {\n  recommendations.push('🎯 Campaign not recognized, check spelling');\n}\n\n// Score rating\nlet rating = 'Poor';\nif (finalScore >= 90) rating = 'Excellent';\nelse if (finalScore >= 75) rating = 'Good';\nelse if (finalScore >= 60) rating = 'Fair';\n\nreturn [{\n  boost_score: Math.round(finalScore),\n  rating: rating,\n  breakdown: {\n    time: Math.round(timeScore),\n    day: Math.round(dayScore),\n    content: Math.round(contentScore),\n    hashtags: Math.round(hashtagScore),\n    campaign_bonus: campaignBonus\n  },\n  recommendations: recommendations,\n  optimal_posting: {\n    days: ['Wednesday', 'Thursday', 'Friday'],\n    hours: ['12:00-14:00', '19:00-22:00'],\n    timezone: 'Thailand (UTC+7)'\n  },\n  arc_curve_used: data.has_arc_curve || false,\n  timestamp: new Date().toISOString()\n}];"
+      },
+      "id": "calculate-boost",
+      "name": "Calculate Boost Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "score-check",
+              "leftValue": "={{ $json.boost_score }}",
+              "rightValue": 75,
+              "operator": {
+                "type": "number",
+                "operation": "larger"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-score",
+      "name": "Check Score Quality",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $input.first().json.chat_id }}",
+        "text": "=✅ EXCELLENT BOOST SCORE!\n\n🎯 Score: {{ $json.boost_score }}/100\n⭐ Rating: {{ $json.rating }}\n\n📊 Breakdown:\n⏰ Time: {{ $json.breakdown.time }}\n📅 Day: {{ $json.breakdown.day }}\n📸 Content: {{ $json.breakdown.content }}\n#️⃣ Hashtags: {{ $json.breakdown.hashtags }}\n🎪 Campaign: +{{ $json.breakdown.campaign_bonus }}\n\n{{ $json.arc_curve_used ? '🎨 Arc Curve: ✓ USED (Brand Critical)' : '⚠️ Arc Curve: Not used' }}\n\n👍 Great timing! Ready to post.",
+        "additionalFields": {}
+      },
+      "id": "send-good-score",
+      "name": "Send Good Score Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [900, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-bot-creds",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $input.first().json.chat_id }}",
+        "text": "=⚠️ BOOST SCORE CAN BE IMPROVED\n\n🎯 Current Score: {{ $json.boost_score }}/100\n⭐ Rating: {{ $json.rating }}\n\n📊 Breakdown:\n⏰ Time: {{ $json.breakdown.time }}\n📅 Day: {{ $json.breakdown.day }}\n📸 Content: {{ $json.breakdown.content }}\n#️⃣ Hashtags: {{ $json.breakdown.hashtags }}\n🎪 Campaign: +{{ $json.breakdown.campaign_bonus }}\n\n💡 Recommendations:\n{{ $json.recommendations.join('\\n') }}\n\n{{ $json.arc_curve_used ? '🎨 Arc Curve: ✓ USED' : '⚠️ Arc Curve: NOT USED (-20 points!)' }}",
+        "additionalFields": {}
+      },
+      "id": "send-improve-score",
+      "name": "Send Improvement Suggestions",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [900, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-bot-creds",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-result",
+      "name": "Respond with Results",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Boost Calculation Webhook": {
+      "main": [
+        [
+          {
+            "node": "Calculate Boost Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Boost Score": {
+      "main": [
+        [
+          {
+            "node": "Check Score Quality",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Score Quality": {
+      "main": [
+        [
+          {
+            "node": "Send Good Score Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Improvement Suggestions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Good Score Notification": {
+      "main": [
+        [
+          {
+            "node": "Respond with Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Improvement Suggestions": {
+      "main": [
+        [
+          {
+            "node": "Respond with Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "Calculates engagement boost scores based on multiple factors",
+    "features": [
+      "Time-of-day scoring",
+      "Day-of-week analysis",
+      "Content type optimization",
+      "Hashtag effectiveness",
+      "Campaign bonuses",
+      "Arc curve detection (+20 bonus)",
+      "Personalized recommendations"
+    ],
+    "scoring_factors": {
+      "time_weight": 0.25,
+      "day_weight": 0.20,
+      "content_weight": 0.30,
+      "hashtag_weight": 0.25,
+      "arc_curve_bonus": 20,
+      "campaign_bonus": "up to 30"
+    }
+  }
+}

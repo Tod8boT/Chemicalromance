@@ -1,0 +1,492 @@
+{
+  "name": "Integration_Hub",
+  "description": "Central hub for integrating workflows, APIs, and external services",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "hub",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "hub-webhook",
+      "name": "Integration Hub Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 400]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "action-review",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "review",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "review"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "action-boost",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "boost",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "boost"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "action-text-overlay",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "text_overlay",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "text_overlay"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "action-publish",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "publish",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "publish"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "action-analytics",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "analytics",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "analytics"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "route-action",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_HOST }}/webhook/review-request",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content_url",
+              "value": "={{ $json.content_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "content_type",
+              "value": "={{ $json.content_type }}"
+            },
+            {
+              "name": "chat_id",
+              "value": "={{ $json.chat_id }}"
+            },
+            {
+              "name": "priority",
+              "value": "={{ $json.priority || 'normal' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "call-review-system",
+      "name": "Call Review System",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_HOST }}/webhook/boost-calculate",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content_type",
+              "value": "={{ $json.content_type }}"
+            },
+            {
+              "name": "hashtags",
+              "value": "={{ $json.hashtags }}"
+            },
+            {
+              "name": "has_arc_curve",
+              "value": "={{ $json.has_arc_curve || false }}"
+            },
+            {
+              "name": "campaign",
+              "value": "={{ $json.campaign }}"
+            },
+            {
+              "name": "chat_id",
+              "value": "={{ $json.chat_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "call-boost-calculator",
+      "name": "Call Boost Calculator",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.N8N_HOST }}/webhook/overlay-form",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $json.image_url }}"
+            },
+            {
+              "name": "chat_id",
+              "value": "={{ $json.chat_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "call-text-overlay",
+      "name": "Call Text Overlay (Arc Curve)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v23.0",
+        "node": "me",
+        "edge": "photos",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "url",
+                "value": "={{ $json.content_url }}"
+              },
+              {
+                "name": "message",
+                "value": "={{ $json.caption }}"
+              },
+              {
+                "name": "published",
+                "value": "={{ $json.publish_now ? 'true' : 'false' }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "publish-facebook",
+      "name": "Publish to Facebook",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [680, 500],
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "facebook-creds",
+          "name": "Facebook Graph API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "GET",
+        "graphApiVersion": "v23.0",
+        "node": "={{ $json.post_id }}",
+        "edge": "insights",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "metric",
+                "value": "post_impressions,post_engaged_users,post_reactions_by_type_total"
+              }
+            ]
+          }
+        }
+      },
+      "id": "get-analytics",
+      "name": "Get Facebook Analytics",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [680, 600],
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "facebook-creds",
+          "name": "Facebook Graph API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "📊 Analytics Retrieved\n\nPost impressions, engagement, and reactions data fetched successfully.",
+        "additionalFields": {}
+      },
+      "id": "send-analytics-notification",
+      "name": "Send Analytics Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [900, 600],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-bot-creds",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, action: $('Route Action').first().json.action, result: $json } }}",
+        "options": {}
+      },
+      "id": "respond-hub",
+      "name": "Respond Hub Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Integration Hub Logger\nconst data = $input.first().json;\n\nconst logEntry = {\n  timestamp: new Date().toISOString(),\n  action: data.action,\n  user_id: data.user_id || 'unknown',\n  chat_id: data.chat_id,\n  content_type: data.content_type,\n  success: true,\n  metadata: {\n    has_arc_curve: data.has_arc_curve || false,\n    campaign: data.campaign || 'none',\n    priority: data.priority || 'normal'\n  }\n};\n\nreturn [logEntry];"
+      },
+      "id": "log-activity",
+      "name": "Log Hub Activity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400]
+    }
+  ],
+  "connections": {
+    "Integration Hub Webhook": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Call Review System",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call Boost Calculator",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call Text Overlay (Arc Curve)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Publish to Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Facebook Analytics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Review System": {
+      "main": [
+        [
+          {
+            "node": "Log Hub Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Boost Calculator": {
+      "main": [
+        [
+          {
+            "node": "Log Hub Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Text Overlay (Arc Curve)": {
+      "main": [
+        [
+          {
+            "node": "Log Hub Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to Facebook": {
+      "main": [
+        [
+          {
+            "node": "Log Hub Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Facebook Analytics": {
+      "main": [
+        [
+          {
+            "node": "Send Analytics Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Analytics Notification": {
+      "main": [
+        [
+          {
+            "node": "Log Hub Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Hub Activity": {
+      "main": [
+        [
+          {
+            "node": "Respond Hub Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "Central integration hub connecting all workflow systems",
+    "features": [
+      "Action-based routing",
+      "Review system integration",
+      "Boost calculator integration",
+      "Text overlay integration (arc curve)",
+      "Facebook publishing",
+      "Analytics retrieval",
+      "Activity logging",
+      "Unified API endpoint"
+    ],
+    "supported_actions": [
+      "review - Route to Review System",
+      "boost - Calculate boost scores",
+      "text_overlay - Apply arc curve text",
+      "publish - Publish to Facebook",
+      "analytics - Fetch engagement data"
+    ]
+  }
+}
