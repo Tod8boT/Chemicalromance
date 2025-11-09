@@ -1,0 +1,464 @@
+{
+  "name": "Content_Stock_Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Daily Content Generation",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 400]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Campaign_Briefs"
+        },
+        "options": {
+          "range": "A:Z"
+        }
+      },
+      "id": "read-campaigns",
+      "name": "Read Campaign Briefs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [200, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_CRED_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=1",
+          "mode": "list",
+          "cachedResultName": "AI_Analysis_Results"
+        },
+        "options": {
+          "range": "A:Z"
+        }
+      },
+      "id": "read-ai-insights",
+      "name": "Read AI Insights",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [200, 500],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_CRED_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "merge-data",
+      "name": "Merge All Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [400, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter only 'Draft' or 'Active' campaigns that need content\nconst campaigns = $input.first().json;\nconst insights = $input.last().json;\n\nconst activeCampaigns = [];\n\nfor (const campaign of $input.all()) {\n  if (campaign.json.status === 'Draft' || campaign.json.status === 'Active') {\n    activeCampaigns.push({\n      json: {\n        campaign_id: campaign.json.campaign_id,\n        objective: campaign.json.objective,\n        target_audience: campaign.json.target_audience,\n        product_focus: campaign.json.product_focus,\n        tone: campaign.json.tone,\n        region: campaign.json.region,\n        content_pillars_json: campaign.json.content_pillars_json,\n        key_messages_json: campaign.json.key_messages_json,\n        // Add insights if available\n        insights: insights\n      }\n    });\n  }\n}\n\nreturn activeCampaigns;"
+      },
+      "id": "filter-campaigns",
+      "name": "Filter Active Campaigns",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 400]
+    },
+    {
+      "parameters": {
+        "batchSize": 5,
+        "options": {}
+      },
+      "id": "loop-campaigns",
+      "name": "Loop Over Campaigns",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3.1,
+      "position": [800, 400]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o",
+          "cachedResultName": "GPT-4O"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a creative content generator for CREMO ice cream franchise.\n\nYour task:\n1. Generate 10 content variations for the campaign\n2. Each variation should include:\n   - Ad headline (short, catchy)\n   - Ad copy (2-3 sentences)\n   - Image prompt (detailed description for AI image generator)\n   - Video prompt (optional, for video ads)\n   - CTA (call-to-action)\n   - Target emotion (what feeling to evoke)\n   - Format recommendation (single image, carousel, video, story)\n\n3. Variations should cover different angles:\n   - Emotional appeal\n   - Rational/benefits\n   - Social proof\n   - Urgency/scarcity\n   - Educational\n   - Entertaining\n\nOutput JSON array:\n[\n  {\n    \"variation_id\": \"V1\",\n    \"headline\": \"...\",\n    \"ad_copy\": \"...\",\n    \"image_prompt\": \"...\",\n    \"video_prompt\": \"...\",\n    \"cta\": \"...\",\n    \"target_emotion\": \"...\",\n    \"format\": \"...\",\n    \"angle\": \"emotional/rational/social/urgency/educational/entertaining\"\n  }\n]"
+            },
+            {
+              "role": "user",
+              "content": "=Generate 10 content variations for:\n\n**Campaign Objective:** {{ $json.objective }}\n**Target Audience:** {{ $json.target_audience }}\n**Product Focus:** {{ $json.product_focus }}\n**Tone:** {{ $json.tone }}\n**Region:** {{ $json.region }}\n\n**Content Pillars:** {{ $json.content_pillars_json }}\n**Key Messages:** {{ $json.key_messages_json }}\n\nCreate diverse, culturally relevant content for Bangkok market."
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "temperature": 0.8,
+          "maxTokens": 3000
+        }
+      },
+      "id": "generate-content",
+      "name": "Generate Content Variations",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [1000, 400],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CRED_ID",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "id": "wait-rate-limit",
+      "name": "Wait (Rate Limit)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1200, 400],
+      "webhookId": "content-gen-wait"
+    },
+    {
+      "parameters": {
+        "fieldsToSplitOut": "message.content",
+        "options": {}
+      },
+      "id": "split-variations",
+      "name": "Split Variations",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [1400, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format each variation for storage\nconst campaignId = $('Loop Over Campaigns').item.json.campaign_id;\nconst variation = $json;\n\nreturn {\n  json: {\n    content_id: `CONT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,\n    campaign_id: campaignId,\n    timestamp: new Date().toISOString(),\n    variation_id: variation.variation_id,\n    headline: variation.headline,\n    ad_copy: variation.ad_copy,\n    image_prompt: variation.image_prompt,\n    video_prompt: variation.video_prompt || '',\n    cta: variation.cta,\n    target_emotion: variation.target_emotion,\n    format: variation.format,\n    angle: variation.angle,\n    status: 'Generated',\n    approval_status: 'Pending Review',\n    generated_by: 'AI',\n    model: 'gpt-4o'\n  }\n};"
+      },
+      "id": "format-variations",
+      "name": "Format Variations",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1600, 400]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=5",
+          "mode": "list",
+          "cachedResultName": "Content_Stock"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "content_id": "={{ $json.content_id }}",
+            "campaign_id": "={{ $json.campaign_id }}",
+            "timestamp": "={{ $json.timestamp }}",
+            "variation_id": "={{ $json.variation_id }}",
+            "headline": "={{ $json.headline }}",
+            "ad_copy": "={{ $json.ad_copy }}",
+            "image_prompt": "={{ $json.image_prompt }}",
+            "video_prompt": "={{ $json.video_prompt }}",
+            "cta": "={{ $json.cta }}",
+            "target_emotion": "={{ $json.target_emotion }}",
+            "format": "={{ $json.format }}",
+            "angle": "={{ $json.angle }}",
+            "status": "={{ $json.status }}",
+            "approval_status": "={{ $json.approval_status }}",
+            "generated_by": "={{ $json.generated_by }}",
+            "model": "={{ $json.model }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "save-content-stock",
+      "name": "Save to Content Stock",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [1800, 400],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_CRED_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "loop_done",
+              "name": "loop_done",
+              "value": "true",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "check-loop",
+      "name": "Check Loop Status",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2000, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $('Loop Over Campaigns').context.noItemsLeft }}",
+              "value2": true,
+              "operation": "equal"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "check-done",
+      "name": "All Campaigns Done?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [2200, 400]
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=✅ **Content Generation Complete**\n\n📊 Generated content variations for all active campaigns\n💾 Saved to Google Sheets: Content_Stock\n\n🔍 Review and approve content at:\nhttps://docs.google.com/spreadsheets/d/YOUR_SHEET_ID",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "notify-complete",
+      "name": "Notify Team",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2400, 300],
+      "webhookId": "content-gen-notify",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CRED_ID",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily Content Generation": {
+      "main": [
+        [
+          {
+            "node": "Read Campaign Briefs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read AI Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Campaign Briefs": {
+      "main": [
+        [
+          {
+            "node": "Merge All Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read AI Insights": {
+      "main": [
+        [
+          {
+            "node": "Merge All Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge All Data": {
+      "main": [
+        [
+          {
+            "node": "Filter Active Campaigns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Active Campaigns": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Campaigns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Campaigns": {
+      "main": [
+        [
+          {
+            "node": "Generate Content Variations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Content Variations": {
+      "main": [
+        [
+          {
+            "node": "Wait (Rate Limit)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait (Rate Limit)": {
+      "main": [
+        [
+          {
+            "node": "Split Variations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Variations": {
+      "main": [
+        [
+          {
+            "node": "Format Variations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Variations": {
+      "main": [
+        [
+          {
+            "node": "Save to Content Stock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Content Stock": {
+      "main": [
+        [
+          {
+            "node": "Check Loop Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Loop Status": {
+      "main": [
+        [
+          {
+            "node": "All Campaigns Done?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All Campaigns Done?": {
+      "main": [
+        [
+          {
+            "node": "Notify Team",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Campaigns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "new-content-stock-generator",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "cc-intel-content-generator"
+  },
+  "id": "Content_Stock_Generator",
+  "tags": ["CC_INTEL", "Content", "AI_Generation"]
+}
