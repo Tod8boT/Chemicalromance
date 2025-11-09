@@ -1,0 +1,2 @@
+asset_id,public_id,version,version_id,signature,width,height,format,resource_type,created_at,tags,bytes,type,etag,placeholder,url,secure_url,asset_folder,display_name,existing,original_filename
+7dedce94fd13918c373f71bd3e6f9a55,logo brand,1757816120,ed3612bbefbb2d0e016a8ca523cc58a8,4a6b00147384ef9371c136f57f81abe0ba3a888b,1080,1080,png,image,2025-09-14T02:15:20Z,[],986509,upload,e0ab21bbb67adfd856a2715b71185149,FALSE,http://res.cloudinary.com/dz3cmaxnc/image/upload/v1757816120/data.png,https://res.cloudinary.com/dz3cmaxnc/image/upload/v1757816120/data.png,,data,FALSE,data
