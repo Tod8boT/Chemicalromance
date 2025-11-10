@@ -790,8 +790,157 @@ CC_ID2 Commits: 1a25ac1 (WF2), dab0a27 (WF4+WF6)
 
 ---
 
+---
+
+## 🔧 CC_ID2 Improvement Plan
+
+### **Critical Issues Found:**
+
+#### **WF2 (Cloudinary Code Generator):**
+**Missing:**
+- ❌ n8n workflow JSON file
+- ❌ Google Sheets integration nodes
+- ❌ Telegram interface/keyboard
+- ❌ Error handling (try-catch)
+- ❌ Module exports for integration
+- ❌ README documentation
+
+**To Add:**
+1. Create `Text_Settings_Control.json` (n8n workflow, ~12 nodes)
+2. Add Google Sheets nodes (Read settings, Update settings)
+3. Create Telegram keyboard interface (9-grid position, font settings)
+4. Add error handling and validation
+5. Export functions as CommonJS module
+6. Create README.md with setup guide
+
+---
+
+#### **WF4 (Auto Storage):**
+**Missing:**
+- ❌ n8n workflow JSON file
+- ❌ Telegram webhook trigger
+- ❌ Cloudinary API nodes
+- ❌ Google Sheets append node
+- ❌ Error handling
+- ❌ README documentation
+
+**To Add:**
+1. Create `Auto_Storage_Webhook.json` (n8n workflow, ~8 nodes)
+2. Add Telegram webhook trigger (photo/video detection)
+3. Add Cloudinary upload node with folder organization
+4. Add Google Sheets append node for catalog
+5. Add error handling and retry logic
+6. Create README.md with webhook setup
+
+---
+
+#### **WF6 (Nano Banana Image Edit):**
+**Missing:**
+- ❌ n8n workflow JSON file
+- ❌ Nano Banana API HTTP request
+- ❌ Telegram interface for product selection
+- ❌ Google Drive API integration
+- ❌ Error handling
+- ❌ README documentation
+- ❌ Templates folder
+
+**To Add:**
+1. Create `Image_Edit_Control.json` (n8n workflow, ~10 nodes)
+2. Add Nano Banana API HTTP request node
+3. Create Telegram keyboard for product catalog
+4. Add Google Drive direct link converter
+5. Add error handling and quality check
+6. Create README.md and templates folder
+7. Add Product_Catalog_Template.csv
+
+---
+
+### **Planned File Structure:**
+
+```
+CC_ID2_WF2/
+├── workflows/
+│   └── Text_Settings_Control.json        # NEW - 12-node workflow
+├── code/
+│   └── cloudinary_url_builder.js         # UPDATE - add exports & error handling
+├── templates/
+│   └── Text_Overlay_Settings_Template.csv
+├── docs/
+│   └── TEXT_OVERLAY_GUIDE.md             # NEW - complete guide
+└── README.md                              # NEW - quick start
+
+CC_ID2_WF4/
+├── workflows/
+│   └── Auto_Storage_Webhook.json         # NEW - 8-node workflow
+├── code/
+│   └── auto_storage_handler.js           # UPDATE - add exports & error handling
+├── templates/
+│   └── Storage_Log_Template.csv
+└── README.md                              # NEW - webhook setup
+
+CC_ID2_WF6/
+├── workflows/
+│   └── Image_Edit_Control.json           # NEW - 10-node workflow
+├── code/
+│   └── nano_banana_image_edit.js         # UPDATE - add exports & error handling
+├── templates/
+│   └── Product_Catalog_Template.csv      # NEW - catalog template
+├── docs/
+│   └── IMAGE_EDIT_GUIDE.md               # NEW - Nano Banana guide
+└── README.md                              # NEW - setup guide
+```
+
+---
+
+### **Implementation Checklist:**
+
+#### **Phase 1: WF2 Improvements**
+- [ ] Create n8n workflow with Telegram trigger
+- [ ] Add Google Sheets read/write nodes
+- [ ] Build Telegram keyboards (position, font, color, effects)
+- [ ] Update code with error handling
+- [ ] Add module.exports for buildTextLayer()
+- [ ] Create TEXT_OVERLAY_GUIDE.md
+- [ ] Create README.md
+
+#### **Phase 2: WF4 Improvements**
+- [ ] Create n8n workflow with webhook trigger
+- [ ] Add Cloudinary upload node
+- [ ] Add Google Sheets append node
+- [ ] Update code with error handling
+- [ ] Add retry logic for upload failures
+- [ ] Create README.md
+
+#### **Phase 3: WF6 Improvements**
+- [ ] Create n8n workflow with Telegram trigger
+- [ ] Add Nano Banana API HTTP node
+- [ ] Build product selection keyboard
+- [ ] Add Google Drive converter
+- [ ] Update code with error handling
+- [ ] Create Product_Catalog_Template.csv
+- [ ] Create IMAGE_EDIT_GUIDE.md
+- [ ] Create README.md
+
+---
+
+### **Expected Results:**
+
+**After improvements:**
+- All 3 workflows will have complete n8n JSON files (ready to import)
+- All workflows will have Telegram interfaces (user-friendly)
+- All code will have error handling (production-ready)
+- All workflows will have documentation (easy to maintain)
+- Integration with CC_ID1's WF3 and WF5 will be plug-and-play
+
+**Total new files:** 10 files
+**Total updated files:** 3 files
+**Total new lines:** ~2000+ lines (workflows + docs + guides)
+
+---
+
 **Last Updated:** November 10, 2025
 **Phase Completed:**
 - CC_ID1: Phase 3 (WF3), Phase 4 (WF5)
 - CC_ID2: Phase 1 (WF2), Phase 3 (WF4), Phase 4 (WF6)
+**Current Phase:** Improvement & Production-Ready
 **Next Phase:** Cross-Review & Integration
