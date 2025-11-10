@@ -1,0 +1,309 @@
+{
+  "name": "Text Settings Control (WF2)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ]
+      },
+      "id": "telegram_trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "{{TELEGRAM_WEBHOOK_ID}}",
+      "credentials": {
+        "telegramApi": {
+          "id": "{{TELEGRAM_CRED_ID}}",
+          "name": "Telegram Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Command Router\nconst message = $input.item.json.message;\nconst text = message.text || '';\nconst chatId = message.chat.id;\nconst userId = message.from.id;\n\nif (text.startsWith('/text_settings')) {\n  return [{\n    json: {\n      command: 'text_settings',\n      chatId,\n      userId,\n      message\n    }\n  }];\n} else if (text.startsWith('/preview')) {\n  return [{\n    json: {\n      command: 'preview',\n      chatId,\n      userId,\n      message\n    }\n  }];\n} else if (text === '/save') {\n  return [{\n    json: {\n      command: 'save',\n      chatId,\n      userId,\n      message\n    }\n  }];\n}\n\nreturn [];"
+      },
+      "id": "command_router",
+      "name": "Command Router",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetName": "text_settings",
+        "range": "A:Z",
+        "options": {
+          "valueRenderMode": "FORMATTED_VALUE"
+        }
+      },
+      "id": "google_sheets_read",
+      "name": "Google Sheets - Read Settings",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 2,
+      "position": [650, 200],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CRED_ID}}",
+          "name": "Google Sheets Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Build Telegram Keyboards\nconst command = $input.item.json.command;\nconst userId = $input.item.json.userId;\n\nconst POSITION_KEYBOARD = {\n  inline_keyboard: [\n    [\n      { text: '↖️ Top Left', callback_data: 'pos_north_west' },\n      { text: '⬆️ Top', callback_data: 'pos_north' },\n      { text: '↗️ Top Right', callback_data: 'pos_north_east' }\n    ],\n    [\n      { text: '⬅️ Left', callback_data: 'pos_west' },\n      { text: '🎯 Center', callback_data: 'pos_center' },\n      { text: '➡️ Right', callback_data: 'pos_east' }\n    ],\n    [\n      { text: '↙️ Bottom Left', callback_data: 'pos_south_west' },\n      { text: '⬇️ Bottom', callback_data: 'pos_south' },\n      { text: '↘️ Bottom Right', callback_data: 'pos_south_east' }\n    ]\n  ]\n};\n\nconst FONT_KEYBOARD = {\n  inline_keyboard: [\n    [\n      { text: 'Mitr', callback_data: 'font_Mitr' },\n      { text: 'Sarabun', callback_data: 'font_Sarabun' },\n      { text: 'Kanit', callback_data: 'font_Kanit' }\n    ],\n    [\n      { text: 'Prompt', callback_data: 'font_Prompt' },\n      { text: 'Anuphan', callback_data: 'font_Anuphan' },\n      { text: 'Bai Jamjuree', callback_data: 'font_BaiJamjuree' }\n    ]\n  ]\n};\n\nconst EFFECTS_KEYBOARD = {\n  inline_keyboard: [\n    [\n      { text: '🔲 Stroke', callback_data: 'effect_stroke' },\n      { text: '🌑 Shadow', callback_data: 'effect_shadow' }\n    ],\n    [\n      { text: '📦 Background', callback_data: 'effect_background' },\n      { text: '🌀 Arc Curve', callback_data: 'effect_arc' }\n    ],\n    [\n      { text: '✅ Done', callback_data: 'effects_done' }\n    ]\n  ]\n};\n\nconst MAIN_MENU = {\n  inline_keyboard: [\n    [\n      { text: '📝 Edit Text', callback_data: 'edit_text' },\n      { text: '📍 Position', callback_data: 'edit_position' }\n    ],\n    [\n      { text: '🎨 Font Style', callback_data: 'edit_font' },\n      { text: '🎭 Effects', callback_data: 'edit_effects' }\n    ],\n    [\n      { text: '👁️ Preview', callback_data: 'action_preview' },\n      { text: '💾 Save', callback_data: 'action_save' }\n    ]\n  ]\n};\n\nlet keyboard = MAIN_MENU;\nlet messageText = '✨ **Text Overlay Settings**\\n\\nSelect an option:';\n\nif (command === 'text_settings') {\n  keyboard = MAIN_MENU;\n  messageText = '✨ **Text Overlay Settings**\\n\\nSelect what you want to edit:';\n}\n\nreturn [{\n  json: {\n    chatId: $input.item.json.chatId,\n    userId,\n    messageText,\n    keyboard,\n    command\n  }\n}];"
+      },
+      "id": "build_keyboard",
+      "name": "Build Keyboard",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "={{$json.messageText}}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": "={{JSON.stringify($json.keyboard)}}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram_send_menu",
+      "name": "Telegram - Send Menu",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1050, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "{{TELEGRAM_CRED_ID}}",
+          "name": "Telegram Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ]
+      },
+      "id": "telegram_callback_trigger",
+      "name": "Telegram Callback",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [250, 500],
+      "webhookId": "{{TELEGRAM_CALLBACK_WEBHOOK_ID}}",
+      "credentials": {
+        "telegramApi": {
+          "id": "{{TELEGRAM_CRED_ID}}",
+          "name": "Telegram Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process Callback Data\nconst callback = $input.item.json.callback_query;\nconst data = callback.data;\nconst userId = callback.from.id;\nconst chatId = callback.message.chat.id;\nconst messageId = callback.message.message_id;\n\nlet action = '';\nlet settingType = '';\nlet value = '';\n\n// Parse callback data\nif (data.startsWith('pos_')) {\n  action = 'update_setting';\n  settingType = 'position';\n  value = data.replace('pos_', '');\n} else if (data.startsWith('font_')) {\n  action = 'update_setting';\n  settingType = 'font_family';\n  value = data.replace('font_', '');\n} else if (data.startsWith('effect_')) {\n  action = 'toggle_effect';\n  settingType = data.replace('effect_', '');\n} else if (data === 'action_preview') {\n  action = 'preview';\n} else if (data === 'action_save') {\n  action = 'save';\n}\n\nreturn [{\n  json: {\n    action,\n    settingType,\n    value,\n    userId,\n    chatId,\n    messageId,\n    callback\n  }\n}];"
+      },
+      "id": "process_callback",
+      "name": "Process Callback",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 500]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "sheetName": "text_settings",
+        "range": "A:Z",
+        "options": {
+          "valueInputMode": "USER_ENTERED"
+        }
+      },
+      "id": "google_sheets_update",
+      "name": "Google Sheets - Update",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 2,
+      "position": [650, 500],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CRED_ID}}",
+          "name": "Google Sheets Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Build Cloudinary URL using cloudinary_url_builder.js\nconst userId = $input.item.json.userId;\nconst action = $input.item.json.action;\n\n// Load settings from Google Sheets (passed from previous node)\nconst allSettings = $input.all();\nconst userSettings = allSettings.filter(s => s.json.user_id === userId.toString());\n\n// Import cloudinary_url_builder functions\n// Note: In n8n, use require with absolute path or configure module path\ntry {\n  const { buildTextLayer, buildCloudinaryURL } = require('/home/user/Chemicalromance/CC_ID2_WF2/code/cloudinary_url_builder.js');\n\n  if (action === 'preview') {\n    // Build preview URL with sample image\n    const textSettings = {\n      text1: userSettings.find(s => s.json.setting_type === 'text1') || {},\n      text2: userSettings.find(s => s.json.setting_type === 'text2') || {},\n      text3: userSettings.find(s => s.json.setting_type === 'text3') || {}\n    };\n\n    const previewUrl = buildCloudinaryURL(\n      textSettings.text1,\n      textSettings.text2,\n      textSettings.text3,\n      'sample_product.jpg',\n      { preview: true, width: 600, height: 600 }\n    );\n\n    return [{\n      json: {\n        userId,\n        chatId: $input.item.json.chatId,\n        previewUrl,\n        action: 'send_preview'\n      }\n    }];\n  }\n} catch (error) {\n  return [{\n    json: {\n      error: error.message,\n      userId,\n      chatId: $input.item.json.chatId\n    }\n  }];\n}\n\nreturn [{ json: $input.item.json }];"
+      },
+      "id": "build_url",
+      "name": "Build Cloudinary URL",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 500]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "operation": "sendPhoto",
+        "binaryData": false,
+        "photo": "={{$json.previewUrl}}",
+        "additionalFields": {
+          "caption": "👁️ **Preview**\\n\\nThis is how your text overlay will look.",
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram_send_preview",
+      "name": "Telegram - Send Preview",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1050, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "{{TELEGRAM_CRED_ID}}",
+          "name": "Telegram Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "✅ Settings updated successfully!",
+        "additionalFields": {}
+      },
+      "id": "telegram_success",
+      "name": "Telegram - Success",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1050, 600],
+      "credentials": {
+        "telegramApi": {
+          "id": "{{TELEGRAM_CRED_ID}}",
+          "name": "Telegram Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "❌ Error: {{$json.error}}",
+        "additionalFields": {}
+      },
+      "id": "telegram_error",
+      "name": "Telegram - Error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1050, 700],
+      "credentials": {
+        "telegramApi": {
+          "id": "{{TELEGRAM_CRED_ID}}",
+          "name": "Telegram Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Command Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Command Router": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Read Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - Read Settings": {
+      "main": [
+        [
+          {
+            "node": "Build Keyboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Keyboard": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Send Menu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Callback": {
+      "main": [
+        [
+          {
+            "node": "Process Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Callback": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - Update": {
+      "main": [
+        [
+          {
+            "node": "Build Cloudinary URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Cloudinary URL": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Send Preview",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-10T00:00:00.000Z",
+  "versionId": "1"
+}

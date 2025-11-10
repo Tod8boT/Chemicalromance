@@ -1,0 +1,94 @@
+{
+  "name": "Nano Banana Image Edit (WF6)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"]
+      },
+      "id": "telegram_trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const message = $input.item.json.message;\nconst text = message.text || '';\n\nif (text === '/edit_image') {\n  return [{\n    json: {\n      command: 'show_products',\n      chatId: message.chat.id,\n      userId: message.from.id\n    }\n  }];\n}\nreturn [];"
+      },
+      "id": "command_router",
+      "name": "Command Router",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const CREMO_PRODUCTS = [\n  {id: '1O5Fkoalc17BdOqWQgjhn8wQDW5SNl4Uw', name: 'ตู้ไอติม aw-c 5'},\n  {id: '1W5VQdqZqGUS0wVMSjb8oFHWiZiPwFTA3', name: 'ตู้ไอติม aw-l 4'}\n];\n\nconst keyboard = {\n  inline_keyboard: CREMO_PRODUCTS.map(p => [{\n    text: p.name,\n    callback_data: `product_${p.id}`\n  }])\n};\n\nreturn [{\n  json: {\n    chatId: $input.item.json.chatId,\n    keyboard,\n    products: CREMO_PRODUCTS\n  }\n}];"
+      },
+      "id": "build_product_list",
+      "name": "Build Product List",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "🍦 Select CREMO product to replace:",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": "={{JSON.stringify($json.keyboard)}}"
+      },
+      "id": "send_product_menu",
+      "name": "Send Product Menu",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.nanobanana.ai/v1/edit",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [\n            {"name": "Authorization", "value": "Bearer {{NANO_BANANA_API_KEY}}"}\n          ]\n        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [\n            {"name": "source_image", "value": "={{$node['Get Source Image'].json.url}}"},\n            {"name": "reference_image", "value": "={{$node['Convert Drive URL'].json.direct_url}}"},\n            {"name": "prompt", "value": "Replace mock object with CREMO freezer, match perspective and lighting"},\n            {"name": "mode", "value": "object_replacement"}\n          ]\n        }
+      },
+      "id": "nano_banana_api",
+      "name": "Nano Banana API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node['Telegram Trigger'].json.message.chat.id}}",
+        "operation": "sendPhoto",
+        "binaryData": false,
+        "photo": "={{$json.result_url}}",
+        "additionalFields": {
+          "caption": "✨ Image edited successfully!"
+        }
+      },
+      "id": "send_result",
+      "name": "Send Result",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [[{"node": "Command Router", "type": "main", "index": 0}]]
+    },
+    "Command Router": {
+      "main": [[{"node": "Build Product List", "type": "main", "index": 0}]]
+    },
+    "Build Product List": {
+      "main": [[{"node": "Send Product Menu", "type": "main", "index": 0}]]
+    }
+  }
+}

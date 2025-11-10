@@ -240,107 +240,135 @@ function validateURL(url) {
 }
 
 /**
- * ===== MAIN EXECUTION =====
+ * ===== MAIN EXECUTION (for n8n) =====
  */
 
-try {
-  // 1. Filter settings by template ID
-  const textSettings = filterSettingsByTemplate(inputData, templateId);
+// Check if running in n8n context or as module
+if (typeof $input !== 'undefined' && typeof $input.all === 'function') {
+  try {
+    // 1. Filter settings by template ID
+    const textSettings = filterSettingsByTemplate(inputData, templateId);
 
-  // 2. Build text layers
-  const textLayers = [];
+    // 2. Build text layers
+    const textLayers = [];
 
-  if (textSettings.text1) {
-    const layer1 = buildTextLayer(textSettings.text1);
-    if (layer1) textLayers.push(layer1);
-  }
-
-  if (textSettings.text2) {
-    const layer2 = buildTextLayer(textSettings.text2);
-    if (layer2) textLayers.push(layer2);
-  }
-
-  if (textSettings.text3) {
-    const layer3 = buildTextLayer(textSettings.text3);
-    if (layer3) textLayers.push(layer3);
-  }
-
-  // 3. Build complete URL
-  const cloudinaryUrl = buildCloudinaryURL(CLOUD_NAME, baseImageUrl, textLayers);
-
-  // 4. Validate URL
-  const urlValidation = validateURL(cloudinaryUrl);
-
-  // 5. Build preview URL (smaller size)
-  const previewLayers = textLayers;
-  const previewUrl = cloudinaryUrl.replace(
-    `w_${DEFAULT_BASE_WIDTH},h_${DEFAULT_BASE_HEIGHT}`,
-    'w_600,h_600'
-  );
-
-  // 6. Return result
-  return [{
-    json: {
-      success: true,
-      template_id: templateId,
-      cloudinary_url: cloudinaryUrl,
-      preview_url: previewUrl,
-      url_validation: urlValidation,
-
-      // Breakdown for debugging
-      transformation_breakdown: {
-        base: `w_${DEFAULT_BASE_WIDTH},h_${DEFAULT_BASE_HEIGHT},c_fill`,
-        text_layer_1: textLayers[0] || "not used",
-        text_layer_2: textLayers[1] || "not used",
-        text_layer_3: textLayers[2] || "not used",
-        source_image: baseImageUrl
-      },
-
-      // Settings used
-      settings_used: {
-        text1: textSettings.text1 ? {
-          content: textSettings.text1.text_content,
-          font: `${textSettings.text1.font_family} ${textSettings.text1.font_size}`,
-          position: textSettings.text1.position,
-          color: textSettings.text1.color
-        } : null,
-        text2: textSettings.text2 ? {
-          content: textSettings.text2.text_content,
-          font: `${textSettings.text2.font_family} ${textSettings.text2.font_size}`,
-          position: textSettings.text2.position,
-          color: textSettings.text2.color
-        } : null,
-        text3: textSettings.text3 ? {
-          content: textSettings.text3.text_content,
-          font: `${textSettings.text3.font_family} ${textSettings.text3.font_size}`,
-          position: textSettings.text3.position,
-          color: textSettings.text3.color
-        } : null
-      },
-
-      // Metadata
-      metadata: {
-        generated_at: new Date().toISOString(),
-        cloud_name: CLOUD_NAME,
-        total_layers: textLayers.length,
-        url_length: cloudinaryUrl.length
-      }
+    if (textSettings.text1) {
+      const layer1 = buildTextLayer(textSettings.text1);
+      if (layer1) textLayers.push(layer1);
     }
-  }];
 
-} catch (error) {
-  // Error handling
-  return [{
-    json: {
-      success: false,
-      error: error.message,
-      error_stack: error.stack,
-      input_data: {
+    if (textSettings.text2) {
+      const layer2 = buildTextLayer(textSettings.text2);
+      if (layer2) textLayers.push(layer2);
+    }
+
+    if (textSettings.text3) {
+      const layer3 = buildTextLayer(textSettings.text3);
+      if (layer3) textLayers.push(layer3);
+    }
+
+    // 3. Build complete URL
+    const cloudinaryUrl = buildCloudinaryURL(CLOUD_NAME, baseImageUrl, textLayers);
+
+    // 4. Validate URL
+    const urlValidation = validateURL(cloudinaryUrl);
+
+    // 5. Build preview URL (smaller size)
+    const previewLayers = textLayers;
+    const previewUrl = cloudinaryUrl.replace(
+      `w_${DEFAULT_BASE_WIDTH},h_${DEFAULT_BASE_HEIGHT}`,
+      'w_600,h_600'
+    );
+
+    // 6. Return result
+    return [{
+      json: {
+        success: true,
         template_id: templateId,
-        base_image_url: baseImageUrl,
-        total_settings: inputData.length,
-        available_templates: [...new Set(inputData.map(item => item.json.template_id))]
+        cloudinary_url: cloudinaryUrl,
+        preview_url: previewUrl,
+        url_validation: urlValidation,
+
+        // Breakdown for debugging
+        transformation_breakdown: {
+          base: `w_${DEFAULT_BASE_WIDTH},h_${DEFAULT_BASE_HEIGHT},c_fill`,
+          text_layer_1: textLayers[0] || "not used",
+          text_layer_2: textLayers[1] || "not used",
+          text_layer_3: textLayers[2] || "not used",
+          source_image: baseImageUrl
+        },
+
+        // Settings used
+        settings_used: {
+          text1: textSettings.text1 ? {
+            content: textSettings.text1.text_content,
+            font: `${textSettings.text1.font_family} ${textSettings.text1.font_size}`,
+            position: textSettings.text1.position,
+            color: textSettings.text1.color
+          } : null,
+          text2: textSettings.text2 ? {
+            content: textSettings.text2.text_content,
+            font: `${textSettings.text2.font_family} ${textSettings.text2.font_size}`,
+            position: textSettings.text2.position,
+            color: textSettings.text2.color
+          } : null,
+          text3: textSettings.text3 ? {
+            content: textSettings.text3.text_content,
+            font: `${textSettings.text3.font_family} ${textSettings.text3.font_size}`,
+            position: textSettings.text3.position,
+            color: textSettings.text3.color
+          } : null
+        },
+
+        // Metadata
+        metadata: {
+          generated_at: new Date().toISOString(),
+          cloud_name: CLOUD_NAME,
+          total_layers: textLayers.length,
+          url_length: cloudinaryUrl.length
+        }
       }
-    }
-  }];
+    }];
+
+  } catch (error) {
+    // Error handling
+    return [{
+      json: {
+        success: false,
+        error: error.message,
+        error_stack: error.stack,
+        input_data: {
+          template_id: templateId,
+          base_image_url: baseImageUrl,
+          total_settings: inputData.length,
+          available_templates: [...new Set(inputData.map(item => item.json.template_id))]
+        }
+      }
+    }];
+  }
+}
+
+/**
+ * ===== MODULE EXPORTS (for external integration) =====
+ */
+
+// Export functions for use in other workflows or scripts
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    // Core functions
+    buildTextLayer,
+    buildCloudinaryURL,
+    validateURL,
+
+    // Helper functions
+    encodeTextForURL,
+    normalizeColor,
+    convertPosition,
+    filterSettingsByTemplate,
+
+    // Constants
+    CLOUD_NAME,
+    DEFAULT_BASE_WIDTH,
+    DEFAULT_BASE_HEIGHT
+  };
 }
