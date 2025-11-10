@@ -1,6 +1,6 @@
 /**
  * ===================================================================
- * CC_ID2 - WF6: Nano Banana Image Edit System
+ * CC_ID2 - WF6: Nano Banana Image Edit System (v2.0)
  * ===================================================================
  *
  * Purpose: Replace mock objects with CREMO products using AI image editing
@@ -14,6 +14,14 @@
  * - Product catalog integration
  * - Batch processing support
  *
+ * v2.0 Improvements:
+ * - Input validation (URL format, product ID)
+ * - Better error handling with Thai messages
+ * - Detailed logging for debugging
+ * - URL validation (source image and product image)
+ * - Module exports for testing
+ * - Improved error responses for Telegram
+ *
  * Based on:
  * - Product catalog from data_media_-_Product_file.csv
  * - CREMO products: 34 items with Google Drive URLs
@@ -23,6 +31,10 @@
 
 // ===== CONFIGURATION =====
 const NANO_BANANA_API_ENDPOINT = "https://api.nanobanana.ai/v1/edit";
+const MIN_IMAGE_WIDTH = 512;
+const MAX_IMAGE_WIDTH = 4096;
+const MIN_IMAGE_HEIGHT = 512;
+const MAX_IMAGE_HEIGHT = 4096;
 const CREMO_PRODUCT_CATALOG = [
   {
     id: "1O5Fkoalc17BdOqWQgjhn8wQDW5SNl4Uw",
@@ -46,6 +58,64 @@ const CREMO_PRODUCT_CATALOG = [
 const sourceImage = $('Source Image').first().json.image_url;
 const targetProductId = $('Settings').first().json.target_product_id;
 const editInstructions = $('Settings').first().json.edit_instructions || {};
+
+/**
+ * ===== VALIDATION FUNCTIONS =====
+ */
+
+/**
+ * Validate URL format
+ * @param {string} url - URL to validate
+ * @returns {boolean} - True if valid
+ */
+function isValidUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const urlObj = new URL(url);
+    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Validate input data
+ * @returns {object} - { valid: boolean, error: string|null }
+ */
+function validateInputData() {
+  const result = { valid: true, error: null };
+
+  // Check source image
+  if (!sourceImage) {
+    result.valid = false;
+    result.error = 'ไม่พบรูปภาพต้นฉบับ กรุณาอัพโหลดรูปภาพที่ต้องการแก้ไข';
+    return result;
+  }
+
+  if (!isValidUrl(sourceImage)) {
+    result.valid = false;
+    result.error = `URL รูปภาพไม่ถูกต้อง: ${sourceImage}`;
+    return result;
+  }
+
+  // Check product ID
+  if (!targetProductId) {
+    result.valid = false;
+    result.error = 'ไม่ได้เลือกสินค้า กรุณาเลือกสินค้าที่ต้องการใช้แทนที่';
+    return result;
+  }
+
+  // Check product exists
+  const product = findProduct(targetProductId);
+  if (!product) {
+    const availableProducts = CREMO_PRODUCT_CATALOG.map(p => `${p.name} (ID: ${p.id.substring(0, 8)}...)`).join('\n- ');
+    result.valid = false;
+    result.error = `ไม่พบสินค้าที่เลือก: ${targetProductId}\n\nสินค้าที่มี:\n- ${availableProducts}`;
+    return result;
+  }
+
+  return result;
+}
 
 /**
  * ===== HELPER FUNCTIONS =====
@@ -159,72 +229,192 @@ function analyzeEditQuality(result) {
 }
 
 /**
+ * Log error with details
+ * @param {string} stage - Stage where error occurred
+ * @param {Error} error - Error object
+ * @param {object} context - Additional context
+ */
+function logError(stage, error, context = {}) {
+  console.error(`[WF6 Error - ${stage}] ${error.message}`);
+  console.error(`[WF6 Error - Stack] ${error.stack}`);
+  console.error(`[WF6 Error - Context]`, JSON.stringify(context, null, 2));
+}
+
+/**
+ * Build error response for Telegram
+ * @param {string} userError - User-friendly error message
+ * @param {object} technicalDetails - Technical details for logging
+ * @returns {object} - Error response
+ */
+function buildErrorResponse(userError, technicalDetails = {}) {
+  const errorMessage = `❌ *แก้ไขรูปภาพไม่สำเร็จ*\n\n${userError}\n\n_กรุณาตรวจสอบและลองใหม่อีกครั้ง_`;
+
+  return {
+    success: false,
+    error: userError,
+    telegram_data: {
+      message_text: errorMessage,
+      parse_mode: 'Markdown'
+    },
+    technical_details: {
+      ...technicalDetails,
+      timestamp: new Date().toISOString(),
+      workflow: 'WF6_Nano_Banana_Image_Edit',
+      version: '2.0'
+    }
+  };
+}
+
+/**
  * ===== MAIN EXECUTION =====
  */
 
 try {
-  // 1. Find target product
-  const product = findProduct(targetProductId);
+  console.log('[WF6] Starting Nano Banana Image Edit workflow v2.0');
 
-  if (!product) {
-    throw new Error(`Product not found: ${targetProductId}. Available: ${CREMO_PRODUCT_CATALOG.map(p => p.id).join(', ')}`);
+  // Step 1: Validate input data
+  console.log('[WF6] Step 1: Validating input data...');
+  const inputValidation = validateInputData();
+  if (!inputValidation.valid) {
+    console.error(`[WF6] Input validation failed: ${inputValidation.error}`);
+    return [{ json: buildErrorResponse(inputValidation.error, { stage: 'input_validation' }) }];
   }
+  console.log('[WF6] ✓ Input validation passed');
 
-  // 2. Get product image URL
+  // Step 2: Find target product
+  console.log('[WF6] Step 2: Finding target product...');
+  const product = findProduct(targetProductId);
+  if (!product) {
+    const error = `ไม่พบสินค้า ID: ${targetProductId}`;
+    console.error(`[WF6] ${error}`);
+    return [{ json: buildErrorResponse(error, {
+      stage: 'product_lookup',
+      product_id: targetProductId,
+      available_count: CREMO_PRODUCT_CATALOG.length
+    }) }];
+  }
+  console.log(`[WF6] ✓ Product found: ${product.name}`);
+
+  // Step 3: Get product image URL
+  console.log('[WF6] Step 3: Converting Google Drive URL...');
   const productImageUrl = getDriveDirectUrl(product.drive_url);
 
-  // 3. Build edit prompt
+  if (!isValidUrl(productImageUrl)) {
+    const error = 'URL รูปภาพสินค้าไม่ถูกต้อง';
+    console.error(`[WF6] ${error}: ${productImageUrl}`);
+    return [{ json: buildErrorResponse(error, {
+      stage: 'product_url_conversion',
+      original_url: product.drive_url,
+      converted_url: productImageUrl
+    }) }];
+  }
+  console.log(`[WF6] ✓ Product image URL: ${productImageUrl.substring(0, 50)}...`);
+
+  // Step 4: Build edit prompt
+  console.log('[WF6] Step 4: Building AI edit prompt...');
   const editPrompt = buildEditPrompt(product, editInstructions);
+  console.log(`[WF6] ✓ Edit prompt created (${editPrompt.length} chars)`);
 
-  // 4. Build Nano Banana API request
+  // Step 5: Build Nano Banana API request
+  console.log('[WF6] Step 5: Building Nano Banana API request...');
   const apiRequest = buildNanoBananaRequest(sourceImage, productImageUrl, editPrompt);
+  console.log('[WF6] ✓ API request ready');
 
-  // 5. Return result (actual API call would be done by HTTP Request node)
-  return [{
-    json: {
-      success: true,
+  // Step 6: Return result (actual API call would be done by HTTP Request node)
+  console.log('[WF6] Step 6: Preparing output...');
+  const successResponse = {
+    success: true,
 
-      // For HTTP Request node
-      api_request: apiRequest,
-      api_endpoint: NANO_BANANA_API_ENDPOINT,
+    // For HTTP Request node
+    api_request: apiRequest,
+    api_endpoint: NANO_BANANA_API_ENDPOINT,
 
-      // Product info
-      product_info: {
-        id: product.id,
-        name: product.name,
-        type: product.type,
-        source_url: product.drive_url,
-        direct_url: productImageUrl
-      },
+    // Product info
+    product_info: {
+      id: product.id,
+      name: product.name,
+      type: product.type,
+      source_url: product.drive_url,
+      direct_url: productImageUrl
+    },
 
-      // Edit configuration
-      edit_config: {
-        source_image: sourceImage,
-        edit_prompt: editPrompt,
-        instructions: editInstructions
-      },
+    // Edit configuration
+    edit_config: {
+      source_image: sourceImage,
+      edit_prompt: editPrompt,
+      instructions: editInstructions
+    },
 
-      // Metadata
-      metadata: {
-        workflow: 'WF6_Nano_Banana_Image_Edit',
-        version: '1.0',
-        created_at: new Date().toISOString()
-      }
+    // Metadata
+    metadata: {
+      workflow: 'WF6_Nano_Banana_Image_Edit',
+      version: '2.0',
+      created_at: new Date().toISOString(),
+      validation_passed: true,
+      prompt_length: editPrompt.length,
+      product_name: product.name
     }
-  }];
+  };
+
+  console.log('[WF6] ✅ Workflow completed successfully');
+  return [{ json: successResponse }];
 
 } catch (error) {
-  // Error handling
-  return [{
-    json: {
-      success: false,
-      error: error.message,
+  // Unexpected error handling
+  logError('main_execution', error, {
+    has_source_image: !!sourceImage,
+    has_product_id: !!targetProductId,
+    source_image_valid: isValidUrl(sourceImage),
+    product_catalog_count: CREMO_PRODUCT_CATALOG.length
+  });
+
+  const errorResponse = buildErrorResponse(
+    'เกิดข้อผิดพลาดที่ไม่คาดคิดในระหว่างเตรียมการแก้ไขรูปภาพ',
+    {
+      stage: 'main_execution',
+      error_message: error.message,
       error_stack: error.stack,
       input_data: {
         source_image: sourceImage,
         target_product_id: targetProductId,
-        available_products: CREMO_PRODUCT_CATALOG.map(p => ({ id: p.id, name: p.name }))
+        has_instructions: !!editInstructions,
+        available_products: CREMO_PRODUCT_CATALOG.map(p => ({
+          id: p.id.substring(0, 12) + '...',
+          name: p.name
+        }))
       }
     }
-  }];
+  );
+
+  return [{ json: errorResponse }];
+}
+
+/**
+ * ===== MODULE EXPORTS (for testing and integration) =====
+ */
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    // Validation functions
+    isValidUrl,
+    validateInputData,
+
+    // Helper functions
+    findProduct,
+    getDriveDirectUrl,
+    buildEditPrompt,
+    buildNanoBananaRequest,
+    analyzeEditQuality,
+
+    // Error handling
+    logError,
+    buildErrorResponse,
+
+    // Constants
+    NANO_BANANA_API_ENDPOINT,
+    CREMO_PRODUCT_CATALOG,
+    MIN_IMAGE_WIDTH,
+    MAX_IMAGE_WIDTH,
+    MIN_IMAGE_HEIGHT,
+    MAX_IMAGE_HEIGHT
+  };
 }
