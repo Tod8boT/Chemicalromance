@@ -1,10 +1,135 @@
-// ===== CLOUDINARY URL BUILDER =====
+// ===== CLOUDINARY URL BUILDER V2 =====
 // CC_ID2: Parameter Mapping & URL Generation Module
 // Mission: แปลง text settings → Cloudinary transformation URLs
 // Usage: สามารถใช้ standalone หรือใน n8n Code node
+//
+// **VERSION 2 UPDATE:**
+// - รองรับ vertical format จาก CC_ID1 (user_id, text_set, setting_type, value)
+// - รองรับ horizontal format เดิม (backward compatible)
+// - Default values ตาม CC_ID1 specs
+
+// ===== DEFAULT VALUES (from CC_ID1) =====
+const DEFAULTS = {
+  fontsize: 60,           // Medium size
+  position: 'center',     // Center position
+  color: 'FFFFFF',        // White text
+  stroke: 0,              // No stroke
+  strokecolor: '000000',  // Black stroke (if enabled)
+  arc: 0,                 // Flat (no curve)
+  font_family: 'Mitr',    // Thai font - fixed by CC_ID1
+  font_weight: 'bold',    // Bold - fixed by CC_ID1
+  text_align: 'center',   // Center align - fixed by CC_ID1
+  max_width: {
+    1: 900,               // Text set 1 (headline)
+    2: 800,               // Text set 2 (sub-headline)
+    3: 700                // Text set 3 (CTA)
+  }
+};
 
 /**
- * Build Cloudinary text overlay URL from settings
+ * Parse vertical format from CC_ID1 to settings object
+ * @param {Array} rows - Array of rows from Google Sheets (vertical format)
+ *                       Format: {user_id, text_set, setting_type, value, updated_at}
+ * @param {number} textSetNum - Text set number (1, 2, or 3)
+ * @returns {Object} - Settings object for one text set
+ */
+function parseVerticalFormat(rows, textSetNum) {
+  // Filter rows for this text set
+  const textSetRows = rows.filter(row =>
+    parseInt(row.text_set) === textSetNum
+  );
+
+  // If no rows found, return null (text set not configured)
+  if (textSetRows.length === 0) {
+    return null;
+  }
+
+  // Helper: get setting value
+  function getValue(settingType) {
+    const row = textSetRows.find(r => r.setting_type === settingType);
+    return row ? row.value : null;
+  }
+
+  // Get text content (required for text set to be enabled)
+  const textContent = getValue('text');
+  if (!textContent || textContent.trim() === '') {
+    return null; // Skip empty text sets
+  }
+
+  // Build settings object with defaults
+  const settings = {
+    text_content: textContent,
+    font_family: DEFAULTS.font_family,
+    font_size: parseInt(getValue('fontsize')) || DEFAULTS.fontsize,
+    font_weight: DEFAULTS.font_weight,
+    text_align: DEFAULTS.text_align,
+    text_color: getValue('color') || DEFAULTS.color,
+    max_width: DEFAULTS.max_width[textSetNum] || 800,
+    position: getValue('position') || DEFAULTS.position,
+    x_offset: 0, // CC_ID1 doesn't support x/y offsets yet
+    y_offset: 0,
+    arc_curve: parseFloat(getValue('arc')) || DEFAULTS.arc
+  };
+
+  // Handle stroke (only if width > 0)
+  const strokeWidth = parseInt(getValue('stroke')) || DEFAULTS.stroke;
+  if (strokeWidth > 0) {
+    settings.stroke = {
+      enabled: true,
+      color: getValue('strokecolor') || DEFAULTS.strokecolor,
+      width: strokeWidth
+    };
+  } else {
+    settings.stroke = { enabled: false };
+  }
+
+  // Shadow and background not supported by CC_ID1 yet (Phase 2)
+  settings.shadow = { enabled: false };
+  settings.background = { enabled: false };
+
+  return settings;
+}
+
+/**
+ * Build Cloudinary URLs from vertical format (CC_ID1 compatible)
+ * @param {Array} rows - Array of rows from Google Sheets
+ * @param {string} userId - User ID to filter (optional, uses first user if not provided)
+ * @param {string} cloudName - Cloudinary cloud name (default: 'dz3cmaxnc')
+ * @returns {Object} - Complete URL with metadata
+ */
+function buildCloudinaryURLFromVertical(rows, userId = null, cloudName = 'dz3cmaxnc') {
+  // Filter by user_id if provided
+  let userRows = rows;
+  if (userId) {
+    userRows = rows.filter(row => row.user_id === userId || row.user_id === userId.toString());
+  }
+
+  // Parse each text set
+  const text1 = parseVerticalFormat(userRows, 1);
+  const text2 = parseVerticalFormat(userRows, 2);
+  const text3 = parseVerticalFormat(userRows, 3);
+
+  // Build settings object for buildCloudinaryURL
+  const settings = {};
+
+  if (text1) {
+    settings.text1 = text1;
+  }
+
+  if (text2) {
+    settings.text2 = { ...text2, enabled: true };
+  }
+
+  if (text3) {
+    settings.text3 = { ...text3, enabled: true };
+  }
+
+  // Use existing buildCloudinaryURL function
+  return buildCloudinaryURL(settings, cloudName);
+}
+
+/**
+ * Build Cloudinary text overlay URL from settings (horizontal format - backward compatible)
  * @param {Object} settings - Text settings object from Google Sheets
  * @param {string} cloudName - Cloudinary cloud name (default: 'dz3cmaxnc')
  * @returns {Object} - Complete URL with metadata
@@ -72,7 +197,8 @@ function buildCloudinaryURL(settings, cloudName = 'dz3cmaxnc') {
 
     // Validate range
     if (arcValue < -180 || arcValue > 180) {
-      throw new Error(`Arc curve must be between -180° and 180°. Got: ${arcValue}°`);\n    }
+      throw new Error(`Arc curve must be between -180° and 180°. Got: ${arcValue}°`);
+    }
 
     return `e_distort:arc:${arcValue.toFixed(1)}`;
   }
@@ -217,12 +343,50 @@ function validateCloudinaryURL(url) {
 
 // === EXPORT FOR USE ===
 module.exports = {
+  // V2 - CC_ID1 compatible (vertical format)
+  buildCloudinaryURLFromVertical,
+  parseVerticalFormat,
+
+  // V1 - Backward compatible (horizontal format)
   buildCloudinaryURL,
-  validateCloudinaryURL
+  validateCloudinaryURL,
+
+  // Constants
+  DEFAULTS
 };
 
 // === EXAMPLE USAGE ===
 /*
+
+// ===== V2: VERTICAL FORMAT (CC_ID1 compatible) =====
+
+const verticalRows = [
+  { user_id: '123', text_set: '1', setting_type: 'text', value: 'ลด 70% วันนี้!', updated_at: '2025-11-09T12:00:00Z' },
+  { user_id: '123', text_set: '1', setting_type: 'fontsize', value: '90', updated_at: '2025-11-09T12:00:00Z' },
+  { user_id: '123', text_set: '1', setting_type: 'position', value: 'north', updated_at: '2025-11-09T12:00:00Z' },
+  { user_id: '123', text_set: '1', setting_type: 'color', value: 'FF0000', updated_at: '2025-11-09T12:00:00Z' },
+  { user_id: '123', text_set: '1', setting_type: 'stroke', value: '8', updated_at: '2025-11-09T12:00:00Z' },
+  { user_id: '123', text_set: '1', setting_type: 'strokecolor', value: 'FFD700', updated_at: '2025-11-09T12:00:00Z' },
+  { user_id: '123', text_set: '1', setting_type: 'arc', value: '-15', updated_at: '2025-11-09T12:00:00Z' },
+  { user_id: '123', text_set: '2', setting_type: 'text', value: 'CREMO', updated_at: '2025-11-09T12:05:00Z' },
+  { user_id: '123', text_set: '2', setting_type: 'fontsize', value: '70', updated_at: '2025-11-09T12:05:00Z' },
+  { user_id: '123', text_set: '2', setting_type: 'position', value: 'center', updated_at: '2025-11-09T12:05:00Z' },
+  { user_id: '123', text_set: '2', setting_type: 'color', value: 'FFFFFF', updated_at: '2025-11-09T12:05:00Z' }
+];
+
+const { buildCloudinaryURLFromVertical } = require('./cloudinary_url_builder.js');
+const result = buildCloudinaryURLFromVertical(verticalRows, '123');
+console.log(result);
+
+// Output:
+// {
+//   success: true,
+//   url_template: 'https://res.cloudinary.com/dz3cmaxnc/image/upload/l_text:Mitr_90_bold_center:ลด%2070%25%20วันนี้!,w_900,c_fit,co_rgb:FF0000,co_rgb:FFD700,e_outline:8,e_distort:arc:-15.0,fl_layer_apply,g_north/l_text:Mitr_70_bold_center:CREMO,w_800,c_fit,co_rgb:FFFFFF,fl_layer_apply,g_center/',
+//   layer_count: 2,
+//   ...
+// }
+
+// ===== V1: HORIZONTAL FORMAT (Backward compatible) =====
 
 const settings = {
   text1: {

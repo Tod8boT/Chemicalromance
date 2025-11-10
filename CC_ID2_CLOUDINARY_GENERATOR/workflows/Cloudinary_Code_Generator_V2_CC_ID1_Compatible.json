@@ -1,0 +1,134 @@
+{
+  "name": "Cloudinary Code Generator V2 (CC_ID1 Compatible)",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "TEXT_SETTINGS_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "text_settings",
+          "mode": "name"
+        },
+        "options": {
+          "range": ""
+        }
+      },
+      "id": "read-cc-id1-settings",
+      "name": "Read CC_ID1 Text Settings (Vertical Format)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [240, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google-sheets-oauth",
+          "name": "Google Sheets OAuth2"
+        }
+      },
+      "notes": "Read vertical format from CC_ID1:\nuser_id, text_set, setting_type, value, updated_at"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== CC_ID2 V2: Vertical Format Parser + URL Builder =====\n// Compatible with CC_ID1 Telegram Interface output\n// Input: vertical format (user_id, text_set, setting_type, value)\n// Output: Cloudinary URLs\n\n// === IMPORT CONSTANTS ===\nconst DEFAULTS = {\n  fontsize: 60,\n  position: 'center',\n  color: 'FFFFFF',\n  stroke: 0,\n  strokecolor: '000000',\n  arc: 0,\n  font_family: 'Mitr',\n  font_weight: 'bold',\n  text_align: 'center',\n  max_width: { 1: 900, 2: 800, 3: 700 }\n};\n\n// === PARSE VERTICAL FORMAT ===\nfunction parseVerticalFormat(rows, textSetNum) {\n  const textSetRows = rows.filter(row => parseInt(row.text_set) === textSetNum);\n  \n  if (textSetRows.length === 0) return null;\n  \n  function getValue(settingType) {\n    const row = textSetRows.find(r => r.setting_type === settingType);\n    return row ? row.value : null;\n  }\n  \n  const textContent = getValue('text');\n  if (!textContent || textContent.trim() === '') return null;\n  \n  const settings = {\n    text_content: textContent,\n    font_family: DEFAULTS.font_family,\n    font_size: parseInt(getValue('fontsize')) || DEFAULTS.fontsize,\n    font_weight: DEFAULTS.font_weight,\n    text_align: DEFAULTS.text_align,\n    text_color: getValue('color') || DEFAULTS.color,\n    max_width: DEFAULTS.max_width[textSetNum] || 800,\n    position: getValue('position') || DEFAULTS.position,\n    x_offset: 0,\n    y_offset: 0,\n    arc_curve: parseFloat(getValue('arc')) || DEFAULTS.arc\n  };\n  \n  const strokeWidth = parseInt(getValue('stroke')) || DEFAULTS.stroke;\n  if (strokeWidth > 0) {\n    settings.stroke = {\n      enabled: true,\n      color: getValue('strokecolor') || DEFAULTS.strokecolor,\n      width: strokeWidth\n    };\n  } else {\n    settings.stroke = { enabled: false };\n  }\n  \n  settings.shadow = { enabled: false };\n  settings.background = { enabled: false };\n  \n  return settings;\n}\n\n// === BUILD CLOUDINARY URL ===\nfunction buildURL(settings, cloudName = 'dz3cmaxnc') {\n  const layers = [];\n  \n  // Helper: map text layer\n  function mapTextLayer(s) {\n    return `l_text:${s.font_family}_${s.font_size}_${s.font_weight}_${s.text_align}:${encodeURIComponent(s.text_content)}`;\n  }\n  \n  // Helper: map color\n  function mapColor(color) {\n    return `co_rgb:${color.replace('#', '')}`;\n  }\n  \n  // Helper: map stroke\n  function mapStroke(stroke) {\n    if (!stroke || !stroke.enabled) return null;\n    return `co_rgb:${stroke.color},e_outline:${stroke.width}`;\n  }\n  \n  // Helper: map arc\n  function mapArc(arc) {\n    if (arc === 0) return null;\n    return `e_distort:arc:${arc.toFixed(1)}`;\n  }\n  \n  // Helper: map position\n  function mapPosition(s) {\n    let pos = `fl_layer_apply,g_${s.position}`;\n    if (s.x_offset !== 0) pos += `,x_${s.x_offset}`;\n    if (s.y_offset !== 0) pos += `,y_${s.y_offset}`;\n    return pos;\n  }\n  \n  // Layer 1\n  if (settings.text1) {\n    const parts = [\n      mapTextLayer(settings.text1),\n      `w_${settings.text1.max_width},c_fit`,\n      mapColor(settings.text1.text_color),\n      mapStroke(settings.text1.stroke),\n      mapArc(settings.text1.arc_curve),\n      mapPosition(settings.text1)\n    ].filter(p => p !== null);\n    layers.push(parts.join(','));\n  }\n  \n  // Layer 2\n  if (settings.text2) {\n    const parts = [\n      mapTextLayer(settings.text2),\n      `w_${settings.text2.max_width},c_fit`,\n      mapColor(settings.text2.text_color),\n      mapArc(settings.text2.arc_curve),\n      mapPosition(settings.text2)\n    ].filter(p => p !== null);\n    layers.push(parts.join(','));\n  }\n  \n  // Layer 3\n  if (settings.text3) {\n    const parts = [\n      mapTextLayer(settings.text3),\n      `w_${settings.text3.max_width},c_fit`,\n      mapColor(settings.text3.text_color),\n      mapPosition(settings.text3)\n    ].filter(p => p !== null);\n    layers.push(parts.join(','));\n  }\n  \n  const transformation = layers.join('/');\n  const urlTemplate = `https://res.cloudinary.com/${cloudName}/image/upload/${transformation}/`;\n  \n  return {\n    transformation_string: transformation,\n    url_template: urlTemplate,\n    layer_count: layers.length\n  };\n}\n\n// === MAIN LOGIC ===\nconst allRows = $input.all().map(item => item.json);\n\n// Group by user_id\nconst userGroups = {};\nfor (const row of allRows) {\n  const userId = row.user_id;\n  if (!userGroups[userId]) userGroups[userId] = [];\n  userGroups[userId].push(row);\n}\n\n// Generate URLs for each user\nconst results = [];\nfor (const [userId, userRows] of Object.entries(userGroups)) {\n  // Parse text sets\n  const text1 = parseVerticalFormat(userRows, 1);\n  const text2 = parseVerticalFormat(userRows, 2);\n  const text3 = parseVerticalFormat(userRows, 3);\n  \n  // Skip if no text sets configured\n  if (!text1 && !text2 && !text3) continue;\n  \n  // Build settings\n  const settings = {};\n  if (text1) settings.text1 = text1;\n  if (text2) settings.text2 = text2;\n  if (text3) settings.text3 = text3;\n  \n  // Generate URL\n  const urlData = buildURL(settings);\n  \n  results.push({\n    user_id: userId,\n    url_template: urlData.url_template,\n    transformation_string: urlData.transformation_string,\n    layer_count: urlData.layer_count,\n    text_sets_configured: [\n      text1 ? 1 : null,\n      text2 ? 2 : null,\n      text3 ? 3 : null\n    ].filter(n => n !== null),\n    generated_at: new Date().toISOString()\n  });\n}\n\nreturn results;"
+      },
+      "id": "parse-and-build-url",
+      "name": "Parse Vertical Format + Build URLs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "notes": "Parse CC_ID1's vertical format and build Cloudinary URLs using DEFAULTS from CC_ID1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== URL VALIDATOR V2 =====\n// Validate Cloudinary URLs generated from CC_ID1 data\n\nconst items = $input.all();\nconst validated = [];\n\nfor (const item of items) {\n  const url = item.json.url_template;\n  const transformation = item.json.transformation_string;\n  \n  // Validation checks\n  const checks = {\n    has_cloudinary_domain: url.includes('res.cloudinary.com/'),\n    has_upload_path: url.includes('/image/upload/'),\n    has_text_layer: transformation.includes('l_text:'),\n    valid_text_syntax: /l_text:[A-Za-z]+_\\d+_[a-z]+_[a-z]+:/.test(transformation),\n    has_layer_apply: transformation.includes('fl_layer_apply'),\n    has_position: transformation.includes('g_'),\n    valid_color: /co_rgb:[0-9A-Fa-f]{6}/.test(transformation),\n    valid_arc: !transformation.includes('e_distort:arc:') || /e_distort:arc:-?\\d+\\.\\d/.test(transformation),\n    within_limit: transformation.length <= 2000,\n    properly_encoded: !url.includes(' ')\n  };\n  \n  const passed = Object.values(checks).filter(v => v).length;\n  const total = Object.keys(checks).length;\n  const score = (passed / total * 100).toFixed(1);\n  \n  // Errors and warnings\n  const errors = [];\n  const warnings = [];\n  \n  if (!checks.has_text_layer) errors.push('Missing text layer');\n  if (!checks.valid_text_syntax) errors.push('Invalid text syntax');\n  if (!checks.has_layer_apply) errors.push('Missing layer apply');\n  if (!checks.valid_color) errors.push('Invalid color format');\n  if (!checks.within_limit) errors.push('URL too long (>2000 chars)');\n  if (!checks.properly_encoded) errors.push('Not properly encoded');\n  \n  if (transformation.length > 1500) warnings.push('URL is very long');\n  if (item.json.layer_count === 1) warnings.push('Only 1 layer configured');\n  \n  const status = errors.length > 0 ? 'invalid' : (warnings.length > 0 ? 'warning' : 'valid');\n  \n  validated.push({\n    user_id: item.json.user_id,\n    url_template: url,\n    transformation_string: transformation,\n    validation_status: status,\n    validation_score: parseFloat(score),\n    errors: errors.join('; ') || 'none',\n    warnings: warnings.join('; ') || 'none',\n    layer_count: item.json.layer_count,\n    text_sets_configured: item.json.text_sets_configured.join(','),\n    character_count: transformation.length,\n    generated_at: item.json.generated_at,\n    validated_at: new Date().toISOString()\n  });\n}\n\nreturn validated;"
+      },
+      "id": "validate-urls",
+      "name": "Validate URLs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "notes": "Validate generated URLs for Cloudinary compatibility"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "TEXT_SETTINGS_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "generated_urls",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $json.user_id }}",
+            "url_template": "={{ $json.url_template }}",
+            "transformation_string": "={{ $json.transformation_string }}",
+            "validation_status": "={{ $json.validation_status }}",
+            "validation_score": "={{ $json.validation_score }}",
+            "errors": "={{ $json.errors }}",
+            "warnings": "={{ $json.warnings }}",
+            "layer_count": "={{ $json.layer_count }}",
+            "text_sets_configured": "={{ $json.text_sets_configured }}",
+            "character_count": "={{ $json.character_count }}",
+            "generated_at": "={{ $json.generated_at }}",
+            "validated_at": "={{ $json.validated_at }}"
+          },
+          "matchingColumns": ["user_id"]
+        },
+        "options": {}
+      },
+      "id": "write-to-sheet",
+      "name": "Write Generated URLs Back to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [900, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google-sheets-oauth",
+          "name": "Google Sheets OAuth2"
+        }
+      },
+      "notes": "Save generated URLs to 'generated_urls' sheet\nUses appendOrUpdate to avoid duplicates"
+    }
+  ],
+  "connections": {
+    "Read CC_ID1 Text Settings (Vertical Format)": {
+      "main": [[{
+        "node": "Parse Vertical Format + Build URLs",
+        "type": "main",
+        "index": 0
+      }]]
+    },
+    "Parse Vertical Format + Build URLs": {
+      "main": [[{
+        "node": "Validate URLs",
+        "type": "main",
+        "index": 0
+      }]]
+    },
+    "Validate URLs": {
+      "main": [[{
+        "node": "Write Generated URLs Back to Sheet",
+        "type": "main",
+        "index": 0
+      }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-09T00:00:00.000Z",
+  "versionId": "v2-cc-id1-compatible"
+}
