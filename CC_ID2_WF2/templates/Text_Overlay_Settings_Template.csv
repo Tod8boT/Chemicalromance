@@ -1,0 +1,10 @@
+row_id,template_id,text_layer,text_content,font_family,font_size,font_weight,color,position,x_offset,y_offset,max_width,stroke_enabled,stroke_color,stroke_width,shadow_enabled,shadow_strength,arc_angle,background_enabled,background_color,background_opacity,align,status,notes
+1,TEMP_001,text1,CREMO ไอศกรีมสด,Mitr,80,bold,FFFFFF,north,0,50,800,TRUE,000000,3,TRUE,40,0,FALSE,000000,80,center,active,Text layer 1 - Main headline
+2,TEMP_001,text2,เริ่มต้นเพียง 2500 บาท,Mitr,60,normal,FFD700,center,0,0,700,TRUE,000000,2,TRUE,30,0,TRUE,000000,70,center,active,Text layer 2 - Price/CTA
+3,TEMP_001,text3,โทร 089-xxx-xxxx,Mitr,40,normal,FFFFFF,south,0,-30,600,TRUE,000000,2,FALSE,0,0,FALSE,000000,0,center,active,Text layer 3 - Contact info
+4,TEMP_002,text1,รับสมัครตัวแทน,Mitr,90,bold,FF6B6B,north,0,40,850,TRUE,FFFFFF,4,TRUE,50,15,FALSE,000000,0,center,active,Curved text example
+5,TEMP_002,text2,ทำเงินง่ายๆ ที่บ้าน,Mitr,65,normal,4ECDC4,center,0,0,750,TRUE,2C3E50,3,TRUE,35,0,TRUE,2C3E50,80,center,active,Sub-headline with background
+6,TEMP_002,text3,,Mitr,40,normal,FFFFFF,south,0,-30,600,FALSE,000000,0,FALSE,0,0,FALSE,000000,0,center,disabled,Not used in this template
+7,TEMP_003,text1,โปรโมชั่นพิเศษ,Mitr,100,bold,FFD700,north_west,50,50,400,TRUE,000000,5,TRUE,60,-30,TRUE,FF0000,90,left,active,Left-aligned curved down
+8,TEMP_003,text2,ลด 50%,Mitr,120,bold,FFFFFF,center,0,0,500,TRUE,FF0000,6,TRUE,70,0,TRUE,000000,85,center,active,Big discount badge
+9,TEMP_003,text3,วันนี้ - พรุ่งนี้เท่านั้น,Mitr,45,normal,FFD700,south_east,-50,-40,650,TRUE,000000,2,FALSE,0,0,FALSE,000000,0,right,active,Right-aligned urgency
