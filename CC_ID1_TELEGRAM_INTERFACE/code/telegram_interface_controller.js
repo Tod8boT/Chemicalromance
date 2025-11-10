@@ -50,10 +50,20 @@ function formatSettingsDisplay(settings) {
     `📍 Position: ${settings.position}`,
     `🎨 Color: #${settings.color}`,
     `🖍️ Stroke: ${settings.strokeWidth}px (#${settings.strokeColor})`,
-    `🌀 Arc: ${settings.arcCurve}°`,
-    '',
-    `🕒 Updated: ${new Date(settings.updatedAt).toLocaleString('th-TH')}`
+    `🌀 Arc: ${settings.arcCurve}°`
   ];
+
+  // Add timing info if set
+  if (settings.timingMode === 'full') {
+    lines.push(`⏱️ Timing: Full Video`);
+  } else if (settings.timingMode === 'range' && settings.startTime !== null && settings.endTime !== null) {
+    lines.push(`⏱️ Timing: ${settings.startTime}s - ${settings.endTime}s`);
+  } else {
+    lines.push(`⏱️ Timing: None (Image mode)`);
+  }
+
+  lines.push('');
+  lines.push(`🕒 Updated: ${new Date(settings.updatedAt).toLocaleString('th-TH')}`);
 
   return lines.join('\\n');
 }
@@ -125,6 +135,9 @@ function buildTextSetMenu(textSetNum) {
       ],
       [
         { text: '🌀 Arc Curve', callback_data: `arc_${textSetNum}` }
+      ],
+      [
+        { text: '⏱️ Timing (Video only)', callback_data: `timing_${textSetNum}` }
       ],
       [
         { text: '👁️ Preview This Set', callback_data: `preview_${textSetNum}` }
@@ -290,6 +303,37 @@ function buildArcKeyboard(textSetNum) {
   };
 }
 
+/**
+ * Build timing selection keyboard (for video only)
+ * @param {number} textSetNum - Text set number
+ * @returns {object} - Telegram inline keyboard
+ */
+function buildTimingKeyboard(textSetNum) {
+  return {
+    inline_keyboard: [
+      [
+        { text: '📺 Full Video', callback_data: `set_timing_${textSetNum}_full` }
+      ],
+      [
+        { text: '0-5s', callback_data: `set_timing_${textSetNum}_0-5` },
+        { text: '5-10s', callback_data: `set_timing_${textSetNum}_5-10` },
+        { text: '10-15s', callback_data: `set_timing_${textSetNum}_10-15` }
+      ],
+      [
+        { text: '15-20s', callback_data: `set_timing_${textSetNum}_15-20` },
+        { text: '20-30s', callback_data: `set_timing_${textSetNum}_20-30` },
+        { text: '30-60s', callback_data: `set_timing_${textSetNum}_30-60` }
+      ],
+      [
+        { text: '✏️ Custom Time', callback_data: `input_timing_${textSetNum}` }
+      ],
+      [
+        { text: '🔙 Back', callback_data: `edit_text_${textSetNum}` }
+      ]
+    ]
+  };
+}
+
 // ===== VALIDATION =====
 
 /**
@@ -335,6 +379,21 @@ function validateSetting(settingType, value) {
       }
       return { valid: true };
 
+    case 'timing_mode':
+      const validModes = ['full', 'range', 'none'];
+      if (!validModes.includes(value)) {
+        return { valid: false, error: 'Timing mode must be full, range, or none' };
+      }
+      return { valid: true };
+
+    case 'start_time':
+    case 'end_time':
+      const time = parseFloat(value);
+      if (isNaN(time) || time < 0) {
+        return { valid: false, error: 'Time must be a positive number (seconds)' };
+      }
+      return { valid: true };
+
     default:
       return { valid: true };
   }
@@ -375,7 +434,10 @@ function parseFromSheets(rows, textSetNum) {
     color: 'FFFFFF',
     strokeWidth: 0,
     strokeColor: '000000',
-    arcCurve: 0
+    arcCurve: 0,
+    timingMode: 'none',
+    startTime: null,
+    endTime: null
   };
 
   rows.forEach(row => {
@@ -402,6 +464,15 @@ function parseFromSheets(rows, textSetNum) {
         case 'text':
           settings.text = row.value;
           break;
+        case 'timing_mode':
+          settings.timingMode = row.value;
+          break;
+        case 'start_time':
+          settings.startTime = parseFloat(row.value);
+          break;
+        case 'end_time':
+          settings.endTime = parseFloat(row.value);
+          break;
       }
     }
   });
@@ -425,6 +496,7 @@ module.exports = {
   buildColorKeyboard,
   buildStrokeKeyboard,
   buildArcKeyboard,
+  buildTimingKeyboard,
 
   // Validation
   validateSetting,
