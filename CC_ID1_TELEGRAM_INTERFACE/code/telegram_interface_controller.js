@@ -25,11 +25,18 @@ function getUserSettings(userId, textSetNum) {
     textSetNum: textSetNum,
     text: '',
     fontSize: 60,
+    fontFamily: 'Mitr',
     position: 'center',
     color: 'FFFFFF',
     strokeWidth: 0,
     strokeColor: '000000',
     arcCurve: 0,
+    shadowEnabled: false,
+    shadowStrength: 0,
+    bgEnabled: false,
+    bgColor: '000000',
+    bgOpacity: 80,
+    maxWidth: 'auto',
     updatedAt: new Date().toISOString()
   };
 
@@ -46,12 +53,27 @@ function formatSettingsDisplay(settings) {
     `📝 **Text Set ${settings.textSetNum}**`,
     '',
     `✏️ Text: ${settings.text || '(not set)'}`,
-    `📏 Font Size: ${settings.fontSize}px`,
+    `🔤 Font: ${settings.fontFamily || 'Mitr'} ${settings.fontSize}px`,
+    `📐 Max Width: ${settings.maxWidth === 'auto' ? 'Auto' : settings.maxWidth + 'px'}`,
     `📍 Position: ${settings.position}`,
     `🎨 Color: #${settings.color}`,
     `🖍️ Stroke: ${settings.strokeWidth}px (#${settings.strokeColor})`,
     `🌀 Arc: ${settings.arcCurve}°`
   ];
+
+  // Shadow
+  if (settings.shadowEnabled && settings.shadowStrength > 0) {
+    lines.push(`🌑 Shadow: ${settings.shadowStrength}`);
+  } else {
+    lines.push(`🌑 Shadow: Off`);
+  }
+
+  // Background
+  if (settings.bgEnabled && settings.bgColor) {
+    lines.push(`🎭 Background: #${settings.bgColor} (${settings.bgOpacity}%)`);
+  } else {
+    lines.push(`🎭 Background: Off`);
+  }
 
   // Add timing info if set
   if (settings.timingMode === 'full') {
@@ -79,9 +101,14 @@ function formatAllSettingsPreview(allSettings) {
   allSettings.forEach((settings, index) => {
     lines.push(`**Text Set ${index + 1}:**`);
     lines.push(`  Text: ${settings.text || '(empty)'}`);
-    lines.push(`  Size: ${settings.fontSize}px | Pos: ${settings.position}`);
-    lines.push(`  Color: #${settings.color} | Stroke: ${settings.strokeWidth}px`);
-    lines.push(`  Arc: ${settings.arcCurve}°`);
+    lines.push(`  Font: ${settings.fontFamily || 'Mitr'} ${settings.fontSize}px`);
+    lines.push(`  Max Width: ${settings.maxWidth === 'auto' ? 'Auto' : settings.maxWidth + 'px'}`);
+    lines.push(`  Pos: ${settings.position} | Color: #${settings.color}`);
+    lines.push(`  Stroke: ${settings.strokeWidth}px | Arc: ${settings.arcCurve}°`);
+
+    const shadowText = settings.shadowEnabled && settings.shadowStrength > 0 ? `On (${settings.shadowStrength})` : 'Off';
+    const bgText = settings.bgEnabled && settings.bgColor ? `#${settings.bgColor} (${settings.bgOpacity}%)` : 'Off';
+    lines.push(`  Shadow: ${shadowText} | BG: ${bgText}`);
     lines.push('');
   });
 
@@ -126,8 +153,12 @@ function buildTextSetMenu(textSetNum) {
         { text: '✏️ Enter Text', callback_data: `input_text_${textSetNum}` }
       ],
       [
-        { text: '📏 Font Size', callback_data: `fontsize_${textSetNum}` },
-        { text: '📍 Position', callback_data: `position_${textSetNum}` }
+        { text: '🔤 Font Family', callback_data: `fontfamily_${textSetNum}` },
+        { text: '📏 Font Size', callback_data: `fontsize_${textSetNum}` }
+      ],
+      [
+        { text: '📍 Position', callback_data: `position_${textSetNum}` },
+        { text: '📐 Max Width', callback_data: `maxwidth_${textSetNum}` }
       ],
       [
         { text: '🎨 Text Color', callback_data: `color_${textSetNum}` },
@@ -135,6 +166,10 @@ function buildTextSetMenu(textSetNum) {
       ],
       [
         { text: '🌀 Arc Curve', callback_data: `arc_${textSetNum}` }
+      ],
+      [
+        { text: '🌑 Shadow', callback_data: `shadow_${textSetNum}` },
+        { text: '🎭 Background', callback_data: `background_${textSetNum}` }
       ],
       [
         { text: '⏱️ Timing (Video only)', callback_data: `timing_${textSetNum}` }
@@ -334,6 +369,133 @@ function buildTimingKeyboard(textSetNum) {
   };
 }
 
+/**
+ * Build font family selection keyboard
+ * @param {number} textSetNum - Text set number
+ * @returns {object} - Telegram inline keyboard
+ */
+function buildFontFamilyKeyboard(textSetNum) {
+  return {
+    inline_keyboard: [
+      [
+        { text: 'Mitr', callback_data: `set_fontfamily_${textSetNum}_Mitr` },
+        { text: 'Kanit', callback_data: `set_fontfamily_${textSetNum}_Kanit` }
+      ],
+      [
+        { text: 'Prompt', callback_data: `set_fontfamily_${textSetNum}_Prompt` },
+        { text: 'Sarabun', callback_data: `set_fontfamily_${textSetNum}_Sarabun` }
+      ],
+      [
+        { text: 'Bai Jamjuree', callback_data: `set_fontfamily_${textSetNum}_Bai_Jamjuree` },
+        { text: 'Sukhumvit', callback_data: `set_fontfamily_${textSetNum}_Sukhumvit` }
+      ],
+      [
+        { text: 'Arial', callback_data: `set_fontfamily_${textSetNum}_Arial` },
+        { text: 'Roboto', callback_data: `set_fontfamily_${textSetNum}_Roboto` }
+      ],
+      [
+        { text: '🔙 Back', callback_data: `edit_text_${textSetNum}` }
+      ]
+    ]
+  };
+}
+
+/**
+ * Build shadow selection keyboard
+ * @param {number} textSetNum - Text set number
+ * @returns {object} - Telegram inline keyboard
+ */
+function buildShadowKeyboard(textSetNum) {
+  return {
+    inline_keyboard: [
+      [
+        { text: '❌ No Shadow', callback_data: `set_shadow_${textSetNum}_0` }
+      ],
+      [
+        { text: 'Light (30)', callback_data: `set_shadow_${textSetNum}_30` },
+        { text: 'Medium (50)', callback_data: `set_shadow_${textSetNum}_50` }
+      ],
+      [
+        { text: 'Strong (80)', callback_data: `set_shadow_${textSetNum}_80` },
+        { text: 'Very Strong (100)', callback_data: `set_shadow_${textSetNum}_100` }
+      ],
+      [
+        { text: '✏️ Custom (0-100)', callback_data: `input_shadow_${textSetNum}` }
+      ],
+      [
+        { text: '🔙 Back', callback_data: `edit_text_${textSetNum}` }
+      ]
+    ]
+  };
+}
+
+/**
+ * Build background selection keyboard
+ * @param {number} textSetNum - Text set number
+ * @returns {object} - Telegram inline keyboard
+ */
+function buildBackgroundKeyboard(textSetNum) {
+  return {
+    inline_keyboard: [
+      [
+        { text: '❌ No Background', callback_data: `set_bg_${textSetNum}_none` }
+      ],
+      [
+        { text: '⚫ Black 80%', callback_data: `set_bg_${textSetNum}_000000_80` },
+        { text: '⚫ Black 60%', callback_data: `set_bg_${textSetNum}_000000_60` }
+      ],
+      [
+        { text: '⚪ White 80%', callback_data: `set_bg_${textSetNum}_FFFFFF_80` },
+        { text: '⚪ White 60%', callback_data: `set_bg_${textSetNum}_FFFFFF_60` }
+      ],
+      [
+        { text: '🔴 Red 60%', callback_data: `set_bg_${textSetNum}_FF0000_60` },
+        { text: '🟡 Yellow 60%', callback_data: `set_bg_${textSetNum}_FFDD17_60` }
+      ],
+      [
+        { text: '🔵 Blue 60%', callback_data: `set_bg_${textSetNum}_0000FF_60` },
+        { text: '🟢 Green 60%', callback_data: `set_bg_${textSetNum}_00FF00_60` }
+      ],
+      [
+        { text: '✏️ Custom Color', callback_data: `input_bg_color_${textSetNum}` },
+        { text: '🎚️ Custom Opacity', callback_data: `input_bg_opacity_${textSetNum}` }
+      ],
+      [
+        { text: '🔙 Back', callback_data: `edit_text_${textSetNum}` }
+      ]
+    ]
+  };
+}
+
+/**
+ * Build max width selection keyboard
+ * @param {number} textSetNum - Text set number
+ * @returns {object} - Telegram inline keyboard
+ */
+function buildMaxWidthKeyboard(textSetNum) {
+  return {
+    inline_keyboard: [
+      [
+        { text: '600px (Narrow)', callback_data: `set_maxwidth_${textSetNum}_600` },
+        { text: '800px (Medium)', callback_data: `set_maxwidth_${textSetNum}_800` }
+      ],
+      [
+        { text: '1000px (Wide)', callback_data: `set_maxwidth_${textSetNum}_1000` },
+        { text: '1200px (X-Wide)', callback_data: `set_maxwidth_${textSetNum}_1200` }
+      ],
+      [
+        { text: 'Auto (No Limit)', callback_data: `set_maxwidth_${textSetNum}_auto` }
+      ],
+      [
+        { text: '✏️ Custom', callback_data: `input_maxwidth_${textSetNum}` }
+      ],
+      [
+        { text: '🔙 Back', callback_data: `edit_text_${textSetNum}` }
+      ]
+    ]
+  };
+}
+
 // ===== VALIDATION =====
 
 /**
@@ -394,6 +556,51 @@ function validateSetting(settingType, value) {
       }
       return { valid: true };
 
+    case 'font_family':
+      const validFonts = ['Mitr', 'Kanit', 'Prompt', 'Sarabun', 'Bai_Jamjuree', 'Sukhumvit', 'Arial', 'Roboto'];
+      if (!validFonts.includes(value)) {
+        return { valid: false, error: 'Invalid font family' };
+      }
+      return { valid: true };
+
+    case 'shadow_strength':
+      const shadow = parseInt(value);
+      if (isNaN(shadow) || shadow < 0 || shadow > 100) {
+        return { valid: false, error: 'Shadow strength must be 0-100' };
+      }
+      return { valid: true };
+
+    case 'shadow_enabled':
+    case 'bg_enabled':
+      if (value !== 'true' && value !== 'false') {
+        return { valid: false, error: 'Value must be true or false' };
+      }
+      return { valid: true };
+
+    case 'bg_color':
+    case 'strokecolor':
+      if (!/^[0-9A-F]{6}$/i.test(value)) {
+        return { valid: false, error: 'Color must be 6-digit hex (e.g., 000000)' };
+      }
+      return { valid: true };
+
+    case 'bg_opacity':
+      const opacity = parseInt(value);
+      if (isNaN(opacity) || opacity < 0 || opacity > 100) {
+        return { valid: false, error: 'Opacity must be 0-100' };
+      }
+      return { valid: true };
+
+    case 'max_width':
+      if (value === 'auto') {
+        return { valid: true };
+      }
+      const width = parseInt(value);
+      if (isNaN(width) || width < 100 || width > 2000) {
+        return { valid: false, error: 'Width must be 100-2000px or "auto"' };
+      }
+      return { valid: true };
+
     default:
       return { valid: true };
   }
@@ -430,11 +637,18 @@ function parseFromSheets(rows, textSetNum) {
     textSetNum: textSetNum,
     text: '',
     fontSize: 60,
+    fontFamily: 'Mitr',
     position: 'center',
     color: 'FFFFFF',
     strokeWidth: 0,
     strokeColor: '000000',
     arcCurve: 0,
+    shadowEnabled: false,
+    shadowStrength: 0,
+    bgEnabled: false,
+    bgColor: '000000',
+    bgOpacity: 80,
+    maxWidth: 'auto',
     timingMode: 'none',
     startTime: null,
     endTime: null
@@ -445,6 +659,9 @@ function parseFromSheets(rows, textSetNum) {
       switch (row.setting_type) {
         case 'fontsize':
           settings.fontSize = parseInt(row.value);
+          break;
+        case 'font_family':
+          settings.fontFamily = row.value;
           break;
         case 'position':
           settings.position = row.value;
@@ -460,6 +677,24 @@ function parseFromSheets(rows, textSetNum) {
           break;
         case 'arc':
           settings.arcCurve = parseInt(row.value);
+          break;
+        case 'shadow_enabled':
+          settings.shadowEnabled = row.value === 'true';
+          break;
+        case 'shadow_strength':
+          settings.shadowStrength = parseInt(row.value);
+          break;
+        case 'bg_enabled':
+          settings.bgEnabled = row.value === 'true';
+          break;
+        case 'bg_color':
+          settings.bgColor = row.value;
+          break;
+        case 'bg_opacity':
+          settings.bgOpacity = parseInt(row.value);
+          break;
+        case 'max_width':
+          settings.maxWidth = row.value === 'auto' ? 'auto' : parseInt(row.value);
           break;
         case 'text':
           settings.text = row.value;
@@ -492,10 +727,14 @@ module.exports = {
   buildMainMenu,
   buildTextSetMenu,
   buildFontSizeKeyboard,
+  buildFontFamilyKeyboard,
   buildPositionKeyboard,
   buildColorKeyboard,
   buildStrokeKeyboard,
   buildArcKeyboard,
+  buildShadowKeyboard,
+  buildBackgroundKeyboard,
+  buildMaxWidthKeyboard,
   buildTimingKeyboard,
 
   // Validation
