@@ -7,7 +7,7 @@
 
 ---
 
-## 📦 สารบัญไฟล์ (5 ไฟล์)
+## 📦 สารบัญไฟล์ (13 ไฟล์)
 
 ### WF2: Cloudinary URL Builder v2.0 (3 ไฟล์)
 ```
@@ -20,18 +20,30 @@ WF2/
     └── Text_Overlay_Settings_Vertical_Template.csv (58 บรรทัด - ไฟล์ใหม่)
 ```
 
-### WF4: Auto Storage System v2.0 (1 ไฟล์)
+### WF4: Auto Storage System v2.0 (4 ไฟล์)
 ```
 WF4/
-└── code/
-    └── auto_storage_handler.js         (425 บรรทัด - validation + error handling)
+├── README.md                           (27 บรรทัด)
+├── code/
+│   └── auto_storage_handler.js         (425 บรรทัด - validation + error handling)
+├── templates/
+│   └── Storage_Log_Template.csv        (3 บรรทัด)
+└── workflows/
+    └── Auto_Storage_Webhook.json       (249 บรรทัด - 8 nodes)
 ```
 
-### WF6: Nano Banana Image Edit v2.0 (1 ไฟล์)
+### WF6: Nano Banana Image Edit v2.0 (5 ไฟล์)
 ```
 WF6/
-└── code/
-    └── nano_banana_image_edit.js       (421 บรรทัด - validation + error handling)
+├── README.md                           (19 บรรทัด)
+├── code/
+│   └── nano_banana_image_edit.js       (421 บรรทัด - validation + error handling)
+├── docs/
+│   └── IMAGE_EDIT_GUIDE.md             (88 บรรทัด)
+├── templates/
+│   └── Product_Catalog_Template.csv    (3 บรรทัด)
+└── workflows/
+    └── Image_Edit_Control.json         (94 บรรทัด - 10 nodes)
 ```
 
 ---
