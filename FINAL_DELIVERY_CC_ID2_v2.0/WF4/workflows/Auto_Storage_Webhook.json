@@ -1,0 +1,249 @@
+{
+  "name": "Auto Storage System (WF4)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "telegram_webhook",
+      "name": "Telegram Webhook",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "{{TELEGRAM_WEBHOOK_ID}}",
+      "credentials": {
+        "telegramApi": {
+          "id": "{{TELEGRAM_CRED_ID}}",
+          "name": "Telegram Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Detect Media Type\nconst message = $input.item.json.message;\nconst userId = message.from.id;\nconst chatId = message.chat.id;\n\nlet mediaType = null;\nlet fileId = null;\nlet metadata = {};\n\nif (message.photo) {\n  mediaType = 'photo';\n  fileId = message.photo[message.photo.length - 1].file_id;\n  metadata = {\n    width: message.photo[message.photo.length - 1].width,\n    height: message.photo[message.photo.length - 1].height,\n    file_size: message.photo[message.photo.length - 1].file_size\n  };\n} else if (message.video) {\n  mediaType = 'video';\n  fileId = message.video.file_id;\n  metadata = {\n    width: message.video.width,\n    height: message.video.height,\n    duration: message.video.duration,\n    file_size: message.video.file_size\n  };\n}\n\nif (!mediaType) {\n  throw new Error('No photo or video found in message');\n}\n\nreturn [{\n  json: {\n    mediaType,\n    fileId,\n    metadata,\n    userId,\n    chatId,\n    messageId: message.message_id,\n    caption: message.caption || '',\n    username: message.from.username || message.from.first_name,\n    timestamp: new Date(message.date * 1000).toISOString()\n  }\n}];"
+      },
+      "id": "detect_media",
+      "name": "Detect Media Type",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/getFile",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "file_id",
+              "value": "={{$json.fileId}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get_file_url",
+      "name": "Get Telegram File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cloudinary.com/v1_1/{{CLOUDINARY_CLOUD_NAME}}/auto/upload",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "file",
+              "value": "=https://api.telegram.org/file/bot{{TELEGRAM_BOT_TOKEN}}/{{$json.result.file_path}}"
+            },
+            {
+              "name": "folder",
+              "value": "=CREMO/auto_storage/{{$now.format('YYYY-MM')}}/{{$node['Detect Media Type'].json.mediaType}}s"
+            },
+            {
+              "name": "public_id",
+              "value": "={{$node['Detect Media Type'].json.userId}}_{{$now.toUnixInteger()}}"
+            },
+            {
+              "name": "resource_type",
+              "value": "auto"
+            },
+            {
+              "name": "tags",
+              "value": "auto_storage,telegram,{{$node['Detect Media Type'].json.username}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "upload_cloudinary",
+      "name": "Upload to Cloudinary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [850, 300],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "{{CLOUDINARY_CRED_ID}}",
+          "name": "Cloudinary API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Build Catalog Entry\nconst uploadResult = $input.item.json;\nconst mediaData = $node['Detect Media Type'].json;\n\nconst catalogId = `CAT_${Date.now()}`;\nconst timestamp = new Date().toISOString();\n\nreturn [{\n  json: {\n    catalog_id: catalogId,\n    timestamp: timestamp,\n    media_type: mediaData.mediaType,\n    cloudinary_public_id: uploadResult.public_id,\n    cloudinary_url: uploadResult.secure_url,\n    cloudinary_folder: uploadResult.folder,\n    telegram_message_id: mediaData.messageId,\n    telegram_user_id: mediaData.userId,\n    telegram_username: mediaData.username,\n    telegram_chat_id: mediaData.chatId,\n    file_size_bytes: mediaData.metadata.file_size || 0,\n    file_size_mb: ((mediaData.metadata.file_size || 0) / (1024 * 1024)).toFixed(2),\n    width: mediaData.metadata.width || 0,\n    height: mediaData.metadata.height || 0,\n    duration_seconds: mediaData.metadata.duration || 0,\n    format: uploadResult.format,\n    resource_type: uploadResult.resource_type,\n    tags: uploadResult.tags ? uploadResult.tags.join(',') : '',\n    status: 'stored',\n    review_status: 'pending',\n    notes: mediaData.caption\n  }\n}];"
+      },
+      "id": "build_catalog",
+      "name": "Build Catalog Entry",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetName": "storage_log",
+        "columns": "autoMapInputData",
+        "options": {}
+      },
+      "id": "log_to_sheets",
+      "name": "Log to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 2,
+      "position": [1250, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CRED_ID}}",
+          "name": "Google Sheets Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node['Detect Media Type'].json.chatId}}",
+        "text": "=✅ **Media Stored Successfully!**\\n\\n📦 **Catalog ID:** {{$node['Build Catalog Entry'].json.catalog_id}}\\n📁 **Folder:** {{$node['Build Catalog Entry'].json.cloudinary_folder}}\\n📏 **Size:** {{$node['Build Catalog Entry'].json.file_size_mb}} MB\\n🔗 **URL:** {{$node['Build Catalog Entry'].json.cloudinary_url}}",
+        "replyToMessageId": "={{$node['Detect Media Type'].json.messageId}}",
+        "additionalFields": {
+          "parse_mode": "Markdown",
+          "disable_web_page_preview": true
+        }
+      },
+      "id": "send_confirmation",
+      "name": "Send Confirmation",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1450, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "{{TELEGRAM_CRED_ID}}",
+          "name": "Telegram Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node['Detect Media Type'].json.chatId}}",
+        "text": "=❌ **Upload Failed**\\n\\nError: {{$json.error}}\\n\\nPlease try again or contact support.",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "send_error",
+      "name": "Send Error Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1450, 500],
+      "credentials": {
+        "telegramApi": {
+          "id": "{{TELEGRAM_CRED_ID}}",
+          "name": "Telegram Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Webhook": {
+      "main": [
+        [
+          {
+            "node": "Detect Media Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Media Type": {
+      "main": [
+        [
+          {
+            "node": "Get Telegram File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Telegram File": {
+      "main": [
+        [
+          {
+            "node": "Upload to Cloudinary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Cloudinary": {
+      "main": [
+        [
+          {
+            "node": "Build Catalog Entry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Catalog Entry": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "send_error"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-10T00:00:00.000Z",
+  "versionId": "1"
+}
