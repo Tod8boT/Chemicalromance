@@ -1,0 +1,360 @@
+{
+  "name": "Text Overlay Integration - Complete (Image + Video)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "media_url",
+              "type": "string",
+              "description": "Image or video URL from Fal.AI"
+            },
+            {
+              "name": "media_type",
+              "type": "string",
+              "description": "image or video"
+            },
+            {
+              "name": "user_id",
+              "type": "string"
+            },
+            {
+              "name": "chat_id",
+              "type": "string"
+            },
+            {
+              "name": "video_duration",
+              "type": "number",
+              "description": "Video duration in seconds (optional, for validation)"
+            }
+          ]
+        }
+      },
+      "id": "trigger-wf3",
+      "name": "Trigger: Integration Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 400]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEETS_TEXT_SETTINGS_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "text_settings",
+          "mode": "list"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "column": "user_id",
+              "condition": "=",
+              "value": "={{ $json.user_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "load-settings",
+      "name": "Load User Settings",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [460, 400],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_CRED_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Detect media type and organize settings by text set\nconst userId = $('Trigger: Integration Start').first().json.user_id;\nconst mediaType = $('Trigger: Integration Start').first().json.media_type || 'image';\nconst mediaUrl = $('Trigger: Integration Start').first().json.media_url;\nconst videoDuration = $('Trigger: Integration Start').first().json.video_duration || null;\n\n// Get all settings from Google Sheets\nconst allSettings = $input.all();\n\n// Organize by text_set\nconst textSets = {};\n\n// Group settings by text_set\nallSettings.forEach(row => {\n  const data = row.json;\n  const textSet = data.text_set;\n  \n  if (!textSets[textSet]) {\n    textSets[textSet] = {\n      text_set: textSet,\n      text: '',\n      fontsize: 60,\n      position: 'center',\n      color: 'FFFFFF',\n      stroke: 0,\n      strokecolor: '000000',\n      arc: 0,\n      // Video timing (new!)\n      start_time: null,\n      end_time: null,\n      timing_mode: 'none'\n    };\n  }\n  \n  // Map settings\n  const setting = data.setting_type;\n  const value = data.value;\n  \n  switch(setting) {\n    case 'text':\n      textSets[textSet].text = value;\n      break;\n    case 'fontsize':\n      textSets[textSet].fontsize = parseInt(value);\n      break;\n    case 'position':\n      textSets[textSet].position = value;\n      break;\n    case 'color':\n      textSets[textSet].color = value.replace('#', '');\n      break;\n    case 'stroke':\n      textSets[textSet].stroke = parseInt(value);\n      break;\n    case 'strokecolor':\n      textSets[textSet].strokecolor = value.replace('#', '');\n      break;\n    case 'arc':\n      textSets[textSet].arc = parseFloat(value);\n      break;\n    // Video timing (new!)\n    case 'start_time':\n      textSets[textSet].start_time = parseFloat(value);\n      break;\n    case 'end_time':\n      textSets[textSet].end_time = parseFloat(value);\n      break;\n    case 'timing_mode':\n      textSets[textSet].timing_mode = value;\n      break;\n  }\n});\n\n// Convert to array and filter empty text sets\nconst textSetsArray = Object.values(textSets).filter(ts => ts.text);\n\n// Validate video timings\nif (mediaType === 'video' && videoDuration) {\n  textSetsArray.forEach(ts => {\n    if (ts.timing_mode === 'range') {\n      // Validate start/end times\n      if (ts.start_time < 0) ts.start_time = 0;\n      if (ts.end_time > videoDuration) ts.end_time = videoDuration;\n      if (ts.start_time >= ts.end_time) {\n        // Invalid range - use full video\n        ts.timing_mode = 'full';\n        ts.start_time = null;\n        ts.end_time = null;\n      }\n    }\n  });\n}\n\nreturn [{\n  userId,\n  mediaType,\n  mediaUrl,\n  videoDuration,\n  textSets: textSetsArray,\n  textSetsCount: textSetsArray.length\n}];"
+      },
+      "id": "organize-settings",
+      "name": "Organize Settings + Detect Media Type",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-text-sets",
+              "leftValue": "={{ $json.textSetsCount }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-has-text",
+      "name": "Check: Has Text Sets?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build Cloudinary transformation URLs for each text set\nconst data = $input.first().json;\nconst cloudName = $env.CLOUDINARY_CLOUD_NAME || 'dz3cmaxnc';\nconst mediaType = data.mediaType;\nconst mediaUrl = data.mediaUrl;\nconst textSets = data.textSets;\n\n/**\n * Build single text layer with optional video timing\n */\nfunction buildTextLayer(textSet, index) {\n  const { text, fontsize, position, color, stroke, strokecolor, arc, \n          start_time, end_time, timing_mode } = textSet;\n  \n  // Encode text\n  const encodedText = encodeURIComponent(text);\n  \n  // Build text layer\n  let layer = `l_text:Mitr_${fontsize}_bold:${encodedText}`;\n  \n  // Color\n  layer += `,co_rgb:${color}`;\n  \n  // Max width based on text set\n  const maxWidth = [900, 800, 700][index] || 700;\n  layer += `,w_${maxWidth},c_fit`;\n  \n  // Stroke\n  if (stroke > 0) {\n    layer += `/co_rgb:${strokecolor},e_outline:${stroke}`;\n  }\n  \n  // Arc curve\n  if (arc !== 0) {\n    layer += `/e_distort:arc:${arc}`;\n  }\n  \n  // Video timing (NEW!)\n  if (mediaType === 'video' && timing_mode === 'range' && start_time !== null && end_time !== null) {\n    layer += `/so_${start_time.toFixed(1)}`; // start offset\n    layer += `,eo_${end_time.toFixed(1)}`; // end offset\n  }\n  // If timing_mode === 'full' or 'none', no so/eo needed (shows entire video)\n  \n  // Apply layer with position\n  layer += `/fl_layer_apply,g_${position}`;\n  \n  return layer;\n}\n\n/**\n * Build complete Cloudinary URL\n */\nfunction buildCloudinaryURL(cloudName, mediaUrl, mediaType, transformations) {\n  const baseUrl = `https://res.cloudinary.com/${cloudName}/${mediaType}/upload`;\n  \n  // Base transformations\n  let baseTrans = '';\n  if (mediaType === 'image') {\n    baseTrans = 'w_1080,h_1080,c_fill';\n  } else if (mediaType === 'video') {\n    baseTrans = 'w_1080,h_1080,c_fill';\n    // Add video quality\n    baseTrans += ',q_auto:good';\n  }\n  \n  // Combine all transformations\n  const allTrans = [baseTrans, ...transformations].filter(t => t).join('/');\n  \n  // Build final URL (fetch external media)\n  const finalUrl = `${baseUrl}/${allTrans}/f_auto/${encodeURIComponent(mediaUrl)}`;\n  \n  return finalUrl;\n}\n\n// Build transformation for each text set\nconst textLayers = textSets.map((ts, index) => buildTextLayer(ts, index));\n\n// Build final URL\nconst finalUrl = buildCloudinaryURL(cloudName, mediaUrl, mediaType, textLayers);\n\n// Build preview URL (smaller for Telegram)\nconst previewLayers = textSets.map((ts, index) => buildTextLayer(ts, index));\nconst previewUrl = buildCloudinaryURL(\n  cloudName, \n  mediaUrl, \n  mediaType,\n  ['w_600,h_600,c_fill,q_auto:low', ...previewLayers]\n);\n\nreturn [{\n  success: true,\n  mediaType,\n  finalUrl,\n  previewUrl,\n  textLayersCount: textLayers.length,\n  transformations: {\n    text_layers: textLayers,\n    base: mediaType === 'image' ? 'w_1080,h_1080,c_fill' : 'w_1080,h_1080,c_fill,q_auto:good',\n    complete: textLayers.join('/')\n  },\n  metadata: {\n    userId: data.userId,\n    textSets: textSets.map(ts => ({\n      text: ts.text,\n      timing: ts.timing_mode === 'range' ? `${ts.start_time}s - ${ts.end_time}s` : ts.timing_mode\n    }))\n  }\n}];"
+      },
+      "id": "build-url",
+      "name": "Build Cloudinary URL (Image/Video)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "method": "HEAD",
+        "url": "={{ $json.finalUrl }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "test-url",
+      "name": "Test URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-video",
+              "leftValue": "={{ $('Build Cloudinary URL (Image/Video)').first().json.mediaType }}",
+              "rightValue": "video",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-media-type",
+      "name": "Check: Video or Image?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendVideo",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"{{ $('Trigger: Integration Start').first().json.chat_id }}\",\n  \"video\": \"{{ $('Build Cloudinary URL (Image/Video)').first().json.finalUrl }}\",\n  \"caption\": \"✨ Video with text overlay ready!\\n\\n{{ $('Build Cloudinary URL (Image/Video)').first().json.metadata.textSets.map(ts => `📝 ${ts.text} (${ts.timing})`).join('\\n') }}\",\n  \"parse_mode\": \"Markdown\"\n}",
+        "options": {}
+      },
+      "id": "send-video",
+      "name": "Send Video to Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendPhoto",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"{{ $('Trigger: Integration Start').first().json.chat_id }}\",\n  \"photo\": \"{{ $('Build Cloudinary URL (Image/Video)').first().json.finalUrl }}\",\n  \"caption\": \"✨ Image with text overlay ready!\\n\\n{{ $('Build Cloudinary URL (Image/Video)').first().json.metadata.textSets.map(ts => `📝 ${ts.text}`).join('\\n') }}\",\n  \"parse_mode\": \"Markdown\"\n}",
+        "options": {}
+      },
+      "id": "send-image",
+      "name": "Send Image to Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"No text sets found for user\",\n  \"userId\": \"{{ $('Organize Settings + Detect Media Type').first().json.userId }}\"\n}",
+        "options": {}
+      },
+      "id": "no-text-response",
+      "name": "Response: No Text Sets",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare final response\nconst buildResult = $('Build Cloudinary URL (Image/Video)').first().json;\nconst triggerData = $('Trigger: Integration Start').first().json;\n\nreturn [{\n  status: 'completed',\n  mediaType: buildResult.mediaType,\n  finalUrl: buildResult.finalUrl,\n  previewUrl: buildResult.previewUrl,\n  textLayersApplied: buildResult.textLayersCount,\n  userId: triggerData.user_id,\n  chatId: triggerData.chat_id,\n  metadata: buildResult.metadata,\n  transformations: buildResult.transformations\n}];"
+      },
+      "id": "final-response",
+      "name": "Prepare Final Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 300]
+    }
+  ],
+  "connections": {
+    "Trigger: Integration Start": {
+      "main": [
+        [
+          {
+            "node": "Load User Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load User Settings": {
+      "main": [
+        [
+          {
+            "node": "Organize Settings + Detect Media Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Organize Settings + Detect Media Type": {
+      "main": [
+        [
+          {
+            "node": "Check: Has Text Sets?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Has Text Sets?": {
+      "main": [
+        [
+          {
+            "node": "Build Cloudinary URL (Image/Video)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Response: No Text Sets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Cloudinary URL (Image/Video)": {
+      "main": [
+        [
+          {
+            "node": "Test URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test URL": {
+      "main": [
+        [
+          {
+            "node": "Check: Video or Image?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Video or Image?": {
+      "main": [
+        [
+          {
+            "node": "Send Video to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Image to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Video to Telegram": {
+      "main": [
+        [
+          {
+            "node": "Prepare Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Image to Telegram": {
+      "main": [
+        [
+          {
+            "node": "Prepare Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-11-09T00:00:00.000Z",
+      "updatedAt": "2025-11-09T00:00:00.000Z",
+      "id": "integration",
+      "name": "integration"
+    },
+    {
+      "createdAt": "2025-11-09T00:00:00.000Z",
+      "updatedAt": "2025-11-09T00:00:00.000Z",
+      "id": "video-support",
+      "name": "video-support"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-11-09T00:00:00.000Z",
+  "versionId": "1.0.0",
+  "id": "text-overlay-integration-complete",
+  "active": false
+}

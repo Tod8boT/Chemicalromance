@@ -1,0 +1,400 @@
+{
+  "name": "WF1: Telegram Text Control - Complete",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message", "callback_query"]
+      },
+      "id": "telegram-trigger",
+      "name": "Telegram Bot Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 400],
+      "webhookId": "telegram-text-control",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CRED_ID",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Telegram update and determine action\nconst update = $input.first().json;\n\nlet action, userId, chatId, messageId, callbackQueryId, data;\n\n// Check if callback query (button press)\nif (update.callback_query) {\n  const cb = update.callback_query;\n  action = 'callback';\n  userId = cb.from.id.toString();\n  chatId = cb.message.chat.id.toString();\n  messageId = cb.message.message_id;\n  callbackQueryId = cb.id;\n  data = cb.data;\n} \n// Check if message (text input)\nelse if (update.message) {\n  const msg = update.message;\n  action = 'message';\n  userId = msg.from.id.toString();\n  chatId = msg.chat.id.toString();\n  messageId = msg.message_id;\n  data = msg.text;\n}\nelse {\n  // Unknown update type\n  return [{\n    action: 'unknown',\n    raw: update\n  }];\n}\n\nreturn [{\n  action,\n  userId,\n  chatId,\n  messageId,\n  callbackQueryId,\n  data,\n  raw: update\n}];"
+      },
+      "id": "parse-update",
+      "name": "Parse Telegram Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "callback",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "callback"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "message",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "message"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "route-action",
+      "name": "Route: Callback or Message",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEETS_TEXT_SETTINGS_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "text_settings",
+          "mode": "list"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "column": "user_id",
+              "condition": "=",
+              "value": "={{ $json.userId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "load-settings",
+      "name": "Load User Settings",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [900, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_CRED_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle callback query (button press)\nconst callbackData = $('Parse Telegram Update').first().json.data;\nconst userId = $('Parse Telegram Update').first().json.userId;\nconst chatId = $('Parse Telegram Update').first().json.chatId;\nconst messageId = $('Parse Telegram Update').first().json.messageId;\nconst callbackQueryId = $('Parse Telegram Update').first().json.callbackQueryId;\n\n// Import helper functions (in real n8n, these would be in a separate module)\n// For this example, we'll include simplified versions\n\nfunction buildMainMenu() {\n  return {\n    inline_keyboard: [\n      [\n        { text: '📝 Text Set 1', callback_data: 'edit_text_1' },\n        { text: '📝 Text Set 2', callback_data: 'edit_text_2' },\n        { text: '📝 Text Set 3', callback_data: 'edit_text_3' }\n      ],\n      [\n        { text: '👁️ Preview Settings', callback_data: 'preview_all' },\n        { text: '💾 Save to Sheets', callback_data: 'save_to_sheets' }\n      ],\n      [\n        { text: '🗑️ Clear All', callback_data: 'clear_all' },\n        { text: 'ℹ️ Help', callback_data: 'help' }\n      ]\n    ]\n  };\n}\n\nfunction buildTextSetMenu(textSetNum) {\n  return {\n    inline_keyboard: [\n      [{ text: '✏️ Enter Text', callback_data: `input_text_${textSetNum}` }],\n      [\n        { text: '🔤 Font Family', callback_data: `fontfamily_${textSetNum}` },\n        { text: '📏 Font Size', callback_data: `fontsize_${textSetNum}` }\n      ],\n      [\n        { text: '📍 Position', callback_data: `position_${textSetNum}` },\n        { text: '📐 Max Width', callback_data: `maxwidth_${textSetNum}` }\n      ],\n      [\n        { text: '🎨 Text Color', callback_data: `color_${textSetNum}` },\n        { text: '🖍️ Stroke', callback_data: `stroke_${textSetNum}` }\n      ],\n      [{ text: '🌀 Arc Curve', callback_data: `arc_${textSetNum}` }],\n      [\n        { text: '🌑 Shadow', callback_data: `shadow_${textSetNum}` },\n        { text: '🎭 Background', callback_data: `background_${textSetNum}` }\n      ],\n      [{ text: '⏱️ Timing (Video only)', callback_data: `timing_${textSetNum}` }],\n      [{ text: '👁️ Preview This Set', callback_data: `preview_${textSetNum}` }],\n      [{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]\n    ]\n  };\n}\n\n// Parse callback data\nlet responseText = '';\nlet keyboard = null;\nlet action = '';\n\nif (callbackData === 'main_menu') {\n  responseText = '🎨 **Text Overlay Control**\\n\\nChoose a text set to edit or preview all:';\n  keyboard = buildMainMenu();\n  action = 'show_menu';\n} \nelse if (callbackData.startsWith('edit_text_')) {\n  const textSetNum = parseInt(callbackData.split('_')[2]);\n  responseText = `📝 **Editing Text Set ${textSetNum}**\\n\\nChoose what to edit:`;\n  keyboard = buildTextSetMenu(textSetNum);\n  action = 'show_text_menu';\n}\nelse if (callbackData.startsWith('fontfamily_')) {\n  const textSetNum = parseInt(callbackData.split('_')[1]);\n  responseText = `🔤 **Select Font Family for Text Set ${textSetNum}**:`;\n  keyboard = {\n    inline_keyboard: [\n      [\n        { text: 'Mitr', callback_data: `set_fontfamily_${textSetNum}_Mitr` },\n        { text: 'Kanit', callback_data: `set_fontfamily_${textSetNum}_Kanit` }\n      ],\n      [\n        { text: 'Prompt', callback_data: `set_fontfamily_${textSetNum}_Prompt` },\n        { text: 'Sarabun', callback_data: `set_fontfamily_${textSetNum}_Sarabun` }\n      ],\n      [\n        { text: 'Bai Jamjuree', callback_data: `set_fontfamily_${textSetNum}_Bai_Jamjuree` },\n        { text: 'Sukhumvit', callback_data: `set_fontfamily_${textSetNum}_Sukhumvit` }\n      ],\n      [\n        { text: 'Arial', callback_data: `set_fontfamily_${textSetNum}_Arial` },\n        { text: 'Roboto', callback_data: `set_fontfamily_${textSetNum}_Roboto` }\n      ],\n      [{ text: '🔙 Back', callback_data: `edit_text_${textSetNum}` }]\n    ]\n  };\n  action = 'show_keyboard';\n}\nelse if (callbackData.startsWith('set_fontfamily_')) {\n  const parts = callbackData.split('_');\n  const textSetNum = parseInt(parts[2]);\n  const fontFamily = parts.slice(3).join('_');\n  \n  action = 'update_setting';\n  responseText = `✅ Font set to ${fontFamily} for Text Set ${textSetNum}`;\n  keyboard = buildTextSetMenu(textSetNum);\n  \n  // Store for update\n  return [{\n    action,\n    userId,\n    chatId,\n    messageId,\n    callbackQueryId,\n    responseText,\n    keyboard,\n    updateData: {\n      textSet: textSetNum,\n      settingType: 'font_family',\n      value: fontFamily\n    }\n  }];\n}\nelse {\n  // Default response\n  responseText = '❓ Unknown action. Returning to main menu.';\n  keyboard = buildMainMenu();\n  action = 'show_menu';\n}\n\nreturn [{\n  action,\n  userId,\n  chatId,\n  messageId,\n  callbackQueryId,\n  responseText,\n  keyboard\n}];"
+      },
+      "id": "handle-callback",
+      "name": "Handle Callback Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "needs-update",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "update_setting",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-needs-update",
+      "name": "Check: Needs Google Sheets Update?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEETS_TEXT_SETTINGS_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "text_settings",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $json.userId }}",
+            "text_set": "={{ $json.updateData.textSet }}",
+            "setting_type": "={{ $json.updateData.settingType }}",
+            "value": "={{ $json.updateData.value }}",
+            "updated_at": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {
+          "keyColumns": "user_id,text_set,setting_type"
+        }
+      },
+      "id": "update-sheets",
+      "name": "Update Setting to Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1560, 100],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_CRED_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/answerCallbackQuery",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"callback_query_id\": \"{{ $('Handle Callback Query').first().json.callbackQueryId }}\",\n  \"text\": \"✅ Updated!\"\n}",
+        "options": {}
+      },
+      "id": "answer-callback",
+      "name": "Answer Callback Query",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/editMessageText",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"{{ $('Handle Callback Query').first().json.chatId }}\",\n  \"message_id\": {{ $('Handle Callback Query').first().json.messageId }},\n  \"text\": \"{{ $('Handle Callback Query').first().json.responseText }}\",\n  \"parse_mode\": \"Markdown\",\n  \"reply_markup\": {{ $('Handle Callback Query').first().json.keyboard }}\n}",
+        "options": {}
+      },
+      "id": "edit-message",
+      "name": "Edit Telegram Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2000, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle text message input\nconst message = $('Parse Telegram Update').first().json.data;\nconst userId = $('Parse Telegram Update').first().json.userId;\nconst chatId = $('Parse Telegram Update').first().json.chatId;\n\n// Check if it's a command\nif (message === '/start' || message === '/menu') {\n  return [{\n    action: 'send_menu',\n    userId,\n    chatId,\n    responseText: '🎨 **Welcome to Text Overlay Control!**\\n\\nUse the buttons below to configure your text overlays.',\n    keyboard: {\n      inline_keyboard: [\n        [\n          { text: '📝 Text Set 1', callback_data: 'edit_text_1' },\n          { text: '📝 Text Set 2', callback_data: 'edit_text_2' },\n          { text: '📝 Text Set 3', callback_data: 'edit_text_3' }\n        ],\n        [\n          { text: '👁️ Preview Settings', callback_data: 'preview_all' },\n          { text: '💾 Save to Sheets', callback_data: 'save_to_sheets' }\n        ],\n        [\n          { text: '🗑️ Clear All', callback_data: 'clear_all' },\n          { text: 'ℹ️ Help', callback_data: 'help' }\n        ]\n      ]\n    }\n  }];\n}\n\n// Default: echo the message\nreturn [{\n  action: 'echo',\n  userId,\n  chatId,\n  responseText: `You said: ${message}\\n\\nUse /menu to open the control panel.`\n}];"
+      },
+      "id": "handle-message",
+      "name": "Handle Text Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"{{ $json.chatId }}\",\n  \"text\": \"{{ $json.responseText }}\",\n  \"parse_mode\": \"Markdown\",\n  \"reply_markup\": {{ $json.keyboard }}\n}",
+        "options": {}
+      },
+      "id": "send-message",
+      "name": "Send Telegram Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 400]
+    }
+  ],
+  "connections": {
+    "Telegram Bot Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Telegram Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Telegram Update": {
+      "main": [
+        [
+          {
+            "node": "Route: Callback or Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: Callback or Message": {
+      "main": [
+        [
+          {
+            "node": "Load User Settings",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Text Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load User Settings": {
+      "main": [
+        [
+          {
+            "node": "Handle Callback Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Callback Query": {
+      "main": [
+        [
+          {
+            "node": "Check: Needs Google Sheets Update?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Needs Google Sheets Update?": {
+      "main": [
+        [
+          {
+            "node": "Update Setting to Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Setting to Sheets": {
+      "main": [
+        [
+          {
+            "node": "Answer Callback Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer Callback Query": {
+      "main": [
+        [
+          {
+            "node": "Edit Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Text Message": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-11-10T00:00:00.000Z",
+      "updatedAt": "2025-11-10T00:00:00.000Z",
+      "id": "telegram",
+      "name": "telegram"
+    },
+    {
+      "createdAt": "2025-11-10T00:00:00.000Z",
+      "updatedAt": "2025-11-10T00:00:00.000Z",
+      "id": "text-control",
+      "name": "text-control"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-11-10T00:00:00.000Z",
+  "versionId": "1.0.0",
+  "id": "wf1-telegram-text-control-complete",
+  "active": false
+}
