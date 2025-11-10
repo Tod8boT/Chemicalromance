@@ -1,0 +1,278 @@
+{
+  "name": "WF3: Logo Placement Control",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ]
+      },
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "logo-placement-telegram-trigger",
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.message}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "name": "Is Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Handle /logo command\nconst message = $input.item.json.message;\nconst chatId = message.chat.id;\nconst userId = message.from.id;\nconst text = message.text || '';\n\nif (text.startsWith('/logo')) {\n  // Import logo controller functions\n  const { buildLogoMainMenu } = require('./logo_controller.js');\n  \n  return {\n    json: {\n      chatId: chatId,\n      userId: userId,\n      messageText: '🖼️ **Logo Placement System**\\n\\nเลือก Logo Set ที่ต้องการแก้ไข:',\n      replyMarkup: buildLogoMainMenu(),\n      action: 'send_message'\n    }\n  };\n}\n\n// Handle text input for custom values\nif ($node['Context'].json.waitingFor) {\n  const { settingType, logoSetNum } = $node['Context'].json;\n  const value = text.trim();\n  \n  // Validate and save\n  const { validateLogoSetting } = require('./logo_controller.js');\n  const validation = validateLogoSetting(settingType, value);\n  \n  if (!validation.valid) {\n    return {\n      json: {\n        chatId: chatId,\n        userId: userId,\n        messageText: `❌ Error: ${validation.error}`,\n        action: 'send_message'\n      }\n    };\n  }\n  \n  // Save to sheets\n  return {\n    json: {\n      chatId: chatId,\n      userId: userId,\n      logoSetNum: logoSetNum,\n      settingType: settingType,\n      value: value,\n      action: 'save_to_sheets'\n    }\n  };\n}\n\nreturn { json: {} };"
+      },
+      "name": "Handle Command",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Handle callback queries from inline keyboards\nconst callbackQuery = $input.item.json.callback_query;\nconst chatId = callbackQuery.message.chat.id;\nconst userId = callbackQuery.from.id;\nconst messageId = callbackQuery.message.message_id;\nconst data = callbackQuery.data;\n\n// Import logo controller functions\nconst {\n  buildLogoMainMenu,\n  buildLogoSetMenu,\n  buildLogoSelectionKeyboard,\n  buildLogoPositionKeyboard,\n  buildLogoSizeKeyboard,\n  buildLogoOpacityKeyboard,\n  buildLogoScaleModeKeyboard,\n  buildLogoBlendModeKeyboard,\n  buildLogoEffectsKeyboard,\n  formatLogoSettingsDisplay,\n  PRESET_LOGOS\n} = require('./logo_controller.js');\n\n// Parse callback data\nconst parts = data.split('_');\nconst action = parts[0];\n\nlet response = {\n  chatId: chatId,\n  userId: userId,\n  messageId: messageId,\n  action: 'edit_message'\n};\n\n// Main menu\nif (data === 'logo_main_menu') {\n  response.messageText = '🖼️ **Logo Placement System**\\n\\nเลือก Logo Set ที่ต้องการแก้ไข:';\n  response.replyMarkup = buildLogoMainMenu();\n  return { json: response };\n}\n\n// Edit logo set\nif (data.startsWith('edit_logo_')) {\n  const logoSetNum = parseInt(data.split('_')[2]);\n  response.messageText = `🖼️ **Logo Set ${logoSetNum} Settings**\\n\\nเลือกการตั้งค่าที่ต้องการแก้ไข:`;\n  response.replyMarkup = buildLogoSetMenu(logoSetNum);\n  return { json: response };\n}\n\n// Select logo\nif (data.startsWith('select_logo_')) {\n  const logoSetNum = parseInt(data.split('_')[2]);\n  response.messageText = `📦 **เลือก Logo สำหรับ Set ${logoSetNum}:**`;\n  response.replyMarkup = buildLogoSelectionKeyboard(logoSetNum);\n  return { json: response };\n}\n\n// Set logo (from preset)\nif (data.startsWith('set_logo_') && !data.includes('position') && !data.includes('size') && !data.includes('opacity') && !data.includes('scale') && !data.includes('blend') && !data.includes('effect')) {\n  const matches = data.match(/set_logo_(\\d+)_(.+)/);\n  if (matches) {\n    const logoSetNum = parseInt(matches[1]);\n    const logoKey = matches[2];\n    const logo = PRESET_LOGOS[logoKey];\n    \n    if (logo) {\n      response.settingType = 'logo_id';\n      response.value = logo.id;\n      response.logoSetNum = logoSetNum;\n      response.messageText = `✅ เลือก ${logo.emoji} ${logo.name} แล้ว!`;\n      response.action = 'save_and_confirm';\n      return { json: response };\n    }\n  }\n}\n\n// Logo position\nif (data.startsWith('logo_position_')) {\n  const logoSetNum = parseInt(data.split('_')[2]);\n  response.messageText = `📍 **เลือกตำแหน่ง Logo Set ${logoSetNum}:**`;\n  response.replyMarkup = buildLogoPositionKeyboard(logoSetNum);\n  return { json: response };\n}\n\nif (data.startsWith('set_logo_position_')) {\n  const matches = data.match(/set_logo_position_(\\d+)_(.+)/);\n  if (matches) {\n    const logoSetNum = parseInt(matches[1]);\n    const position = matches[2];\n    \n    response.settingType = 'position';\n    response.value = position;\n    response.logoSetNum = logoSetNum;\n    response.messageText = `✅ ตั้งตำแหน่งเป็น ${position} แล้ว!`;\n    response.action = 'save_and_confirm';\n    return { json: response };\n  }\n}\n\n// Logo size\nif (data.startsWith('logo_size_')) {\n  const logoSetNum = parseInt(data.split('_')[2]);\n  response.messageText = `📏 **เลือกขนาด Logo Set ${logoSetNum}:**`;\n  response.replyMarkup = buildLogoSizeKeyboard(logoSetNum);\n  return { json: response };\n}\n\nif (data.startsWith('set_logo_size_')) {\n  const matches = data.match(/set_logo_size_(\\d+)_(\\d+)/);\n  if (matches) {\n    const logoSetNum = parseInt(matches[1]);\n    const size = matches[2];\n    \n    response.settingType = 'width';\n    response.value = size;\n    response.logoSetNum = logoSetNum;\n    response.messageText = `✅ ตั้งขนาดเป็น ${size}px แล้ว!`;\n    response.action = 'save_and_confirm';\n    return { json: response };\n  }\n}\n\n// Logo opacity\nif (data.startsWith('logo_opacity_')) {\n  const logoSetNum = parseInt(data.split('_')[2]);\n  response.messageText = `👻 **เลือกความโปร่งใส Logo Set ${logoSetNum}:**`;\n  response.replyMarkup = buildLogoOpacityKeyboard(logoSetNum);\n  return { json: response };\n}\n\nif (data.startsWith('set_logo_opacity_')) {\n  const matches = data.match(/set_logo_opacity_(\\d+)_(\\d+)/);\n  if (matches) {\n    const logoSetNum = parseInt(matches[1]);\n    const opacity = matches[2];\n    \n    response.settingType = 'opacity';\n    response.value = opacity;\n    response.logoSetNum = logoSetNum;\n    response.messageText = `✅ ตั้งความโปร่งใสเป็น ${opacity}% แล้ว!`;\n    response.action = 'save_and_confirm';\n    return { json: response };\n  }\n}\n\n// Logo scale mode\nif (data.startsWith('logo_scale_')) {\n  const logoSetNum = parseInt(data.split('_')[2]);\n  response.messageText = `🔧 **เลือก Scale Mode สำหรับ Logo Set ${logoSetNum}:**`;\n  response.replyMarkup = buildLogoScaleModeKeyboard(logoSetNum);\n  return { json: response };\n}\n\nif (data.startsWith('set_logo_scale_')) {\n  const matches = data.match(/set_logo_scale_(\\d+)_(.+)/);\n  if (matches) {\n    const logoSetNum = parseInt(matches[1]);\n    const scaleMode = matches[2];\n    \n    response.settingType = 'scale_mode';\n    response.value = scaleMode;\n    response.logoSetNum = logoSetNum;\n    response.messageText = `✅ ตั้ง Scale Mode เป็น ${scaleMode} แล้ว!`;\n    response.action = 'save_and_confirm';\n    return { json: response };\n  }\n}\n\n// Logo blend mode\nif (data.startsWith('logo_blend_')) {\n  const logoSetNum = parseInt(data.split('_')[2]);\n  response.messageText = `🎨 **เลือก Blend Mode สำหรับ Logo Set ${logoSetNum}:**`;\n  response.replyMarkup = buildLogoBlendModeKeyboard(logoSetNum);\n  return { json: response };\n}\n\nif (data.startsWith('set_logo_blend_')) {\n  const matches = data.match(/set_logo_blend_(\\d+)_(.+)/);\n  if (matches) {\n    const logoSetNum = parseInt(matches[1]);\n    const blendMode = matches[2];\n    \n    response.settingType = 'blend_mode';\n    response.value = blendMode;\n    response.logoSetNum = logoSetNum;\n    response.messageText = `✅ ตั้ง Blend Mode เป็น ${blendMode} แล้ว!`;\n    response.action = 'save_and_confirm';\n    return { json: response };\n  }\n}\n\n// Logo effects\nif (data.startsWith('logo_effects_')) {\n  const logoSetNum = parseInt(data.split('_')[2]);\n  response.messageText = `✨ **เลือก Effect สำหรับ Logo Set ${logoSetNum}:**`;\n  response.replyMarkup = buildLogoEffectsKeyboard(logoSetNum);\n  return { json: response };\n}\n\nif (data.startsWith('set_logo_effect_')) {\n  const matches = data.match(/set_logo_effect_(\\d+)_(.+)/);\n  if (matches) {\n    const logoSetNum = parseInt(matches[1]);\n    const effect = matches[2];\n    \n    response.settingType = 'effect';\n    response.value = effect;\n    response.logoSetNum = logoSetNum;\n    response.messageText = `✅ ตั้ง Effect เป็น ${effect} แล้ว!`;\n    response.action = 'save_and_confirm';\n    return { json: response };\n  }\n}\n\n// Preview logo\nif (data.startsWith('preview_logo_')) {\n  const logoSetNum = parseInt(data.split('_')[2]);\n  response.logoSetNum = logoSetNum;\n  response.action = 'preview_logo';\n  return { json: response };\n}\n\n// Save to sheets\nif (data === 'save_logos_to_sheets') {\n  response.messageText = '💾 กำลังบันทึกการตั้งค่า Logo ลงในฐานข้อมูล...';\n  response.action = 'save_all_to_sheets';\n  return { json: response };\n}\n\nreturn { json: response };"
+      },
+      "name": "Handle Callback Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.action}}",
+              "value2": "save_and_confirm"
+            }
+          ]
+        }
+      },
+      "name": "Need to Save?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Logo_Settings",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{$json.userId}}",
+            "logo_set": "={{$json.logoSetNum}}",
+            "setting_type": "={{$json.settingType}}",
+            "value": "={{$json.value}}",
+            "updated_at": "={{$now.toISO()}}"
+          }
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED",
+          "useAppend": false,
+          "dataLocationOnSheet": "A1"
+        }
+      },
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1050, 200],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "1",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "={{$json.messageText}}",
+        "replyMarkup": "={{$json.replyMarkup}}",
+        "additionalFields": {}
+      },
+      "name": "Send Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1250, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "messageId": "={{$json.messageId}}",
+        "text": "={{$json.messageText}}",
+        "replyMarkup": "={{$json.replyMarkup}}",
+        "additionalFields": {}
+      },
+      "name": "Edit Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1250, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Logo_Settings",
+          "mode": "name"
+        },
+        "options": {
+          "rangeDefinition": "specifyRange",
+          "range": "A2:E"
+        }
+      },
+      "name": "Load Logo Settings",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [850, 500],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "1",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Generate preview of logo settings\nconst { parseLogoFromSheets, formatLogoSettingsDisplay } = require('./logo_controller.js');\n\nconst userId = $input.item.json.userId;\nconst logoSetNum = $input.item.json.logoSetNum;\nconst rows = $node['Load Logo Settings'].json;\n\n// Parse settings from sheets\nconst settings = parseLogoFromSheets(rows, logoSetNum);\n\n// Format for display\nconst displayText = formatLogoSettingsDisplay(settings);\n\nreturn {\n  json: {\n    chatId: $input.item.json.chatId,\n    messageText: displayText,\n    action: 'send_message'\n  }\n};"
+      },
+      "name": "Format Preview",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1050, 500]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Is Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Message?": {
+      "main": [
+        [
+          {
+            "node": "Handle Command",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Callback Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Command": {
+      "main": [
+        [
+          {
+            "node": "Need to Save?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Callback Query": {
+      "main": [
+        [
+          {
+            "node": "Need to Save?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Need to Save?": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Edit Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "versionId": "wf3-logo-placement-v1"
+}
