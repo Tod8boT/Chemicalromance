@@ -267,7 +267,111 @@ MIT License - ใช้งานได้อย่างอิสระ
 
 ---
 
+## 🎨 Facebook Intelligence System - Phase 1
+
+**NEW!** Text Overlay & Logo Placement System
+
+### Overview
+
+ระบบควบคุม text overlay และ logo placement สำหรับรูปและวิดีโอ โดยใช้:
+- **Telegram Bot** - Interface สำหรับผู้ใช้
+- **n8n Workflows** - Automation
+- **Google Sheets** - เก็บ settings
+- **Cloudinary** - Transform รูป/วิดีโอ
+
+### Workflows (Phase 1)
+
+#### WF1: Telegram Text Control ✅
+**ตำแหน่ง:** `CC_ID1_TELEGRAM_INTERFACE/workflows/`
+
+**Features:**
+- 3 text sets พร้อม overlay แบบซ้อนทับได้
+- 8 fonts (Mitr, Kanit, Prompt, Sarabun, etc.)
+- Shadow effects (0-100 strength)
+- Background color + opacity
+- Max width control (600-2000px)
+- Position (9-point grid)
+- Stroke/outline
+- Arc curve (-180° to +180°)
+- Video timing support
+
+**Nodes:** 11 nodes
+
+#### WF3: Logo Placement Control ✅
+**ตำแหน่ง:** `WF3_LOGO_PLACEMENT/workflows/`
+
+**Features:**
+- 3 logo sets (แยกจาก text)
+- 6 preset logos + custom upload
+- ควบคุม size, position, opacity
+- Effects (shadow, border, glow)
+- Blend modes
+- Video timing
+
+**Nodes:** 10 nodes
+
+#### WF5: Video Text Overlay Integration ✅
+**ตำแหน่ง:** `WF3_INTEGRATION/workflows/`
+
+**Features:**
+- Auto-detect media type (image/video)
+- Apply text settings จาก Google Sheets
+- Video timing validation
+- ส่งผลลัพธ์ไป Telegram
+- รองรับ shadow, background, font_family, max_width
+
+**Nodes:** 11 nodes
+
+### Quick Start (Facebook Intelligence System)
+
+```bash
+# 1. Import workflows
+Import WF1: CC_ID1_TELEGRAM_INTERFACE/workflows/WF1_Telegram_Text_Control_Complete.json
+Import WF3: WF3_LOGO_PLACEMENT/workflows/Logo_Placement_Control.json
+Import WF5: WF3_INTEGRATION/workflows/Text_Overlay_Integration_Complete.json
+
+# 2. ตั้งค่า environment variables
+TELEGRAM_BOT_TOKEN=your_bot_token
+GOOGLE_SHEETS_TEXT_SETTINGS_ID=your_sheet_id
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+
+# 3. Create Google Sheets
+ใช้ template จาก CC_ID1_TELEGRAM_INTERFACE/templates/
+
+# 4. Test
+ส่ง /start ไป Telegram bot
+```
+
+### Documentation
+
+- **Logo Guide:** `WF3_LOGO_PLACEMENT/docs/LOGO_PLACEMENT_GUIDE.md`
+- **Video Timing:** `WF3_INTEGRATION/docs/VIDEO_TIMING_GUIDE.md`
+- **WF5 Enhancement:** `WF3_INTEGRATION/docs/WF5_ENHANCEMENT_GUIDE.md`
+- **Collaboration Log:** `ID_Talk.md`
+
+### Stats
+
+- **Total Code:** 2000+ lines
+- **Total Workflows:** 3 complete
+- **Total Nodes:** 32 nodes
+- **Features:** 18 text settings + 10 logo settings
+- **Documentation:** 1500+ lines
+
+**Built by:** CC_ID1 & CC_ID2
+**Last Updated:** November 10, 2025
+**Version:** 1.1.0
+
+---
+
 ## Changelog
+
+### v1.1.0 (2025-11-10)
+- 🎨 เพิ่ม Facebook Intelligence System Phase 1
+- ✅ WF1: Telegram Text Control (11 nodes)
+- ✅ WF3: Logo Placement System (10 nodes)
+- ✅ WF5: Video Text Overlay Integration (11 nodes)
+- ✨ 4 new features: Font family, Shadow, Background, Max width
+- 📚 Documentation 1500+ lines
 
 ### v1.0.0 (2024-11-08)
 - 🎉 Initial release
