@@ -1,0 +1,1009 @@
+{
+  "name": "check_customer",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9f11cd8c-786d-4bbd-8b35-1073b7829c66",
+              "name": "finalDecision",
+              "value": "=ปิดการขาย",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        192
+      ],
+      "id": "38906c5e-aa49-457f-b08f-42b632b3d611",
+      "name": "Set Contact Response"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M",
+          "mode": "list",
+          "cachedResultName": "adminpage",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "customer _check",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "วันที่": "={{$now.setZone(\"Asia/Bangkok\").format(\"dd/LL/yyyy HH:mm:ss\")}}",
+            "status": "Normal",
+            "psid": "={{ $json.psid }}"
+          },
+          "matchingColumns": [
+            "userid"
+          ],
+          "schema": [
+            {
+              "id": "psid",
+              "displayName": "psid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "วันที่",
+              "displayName": "วันที่",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "คำตอบล่าสุด",
+              "displayName": "คำตอบล่าสุด",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "สถานะลูกค้า",
+              "displayName": "สถานะลูกค้า",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f5d991fe-37da-4efe-961a-dbc6f7bfff33",
+      "name": "add user",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2016,
+        448
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ANEyPhCaKnqWBtYV",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// === CHECK EXIST NODE (แก้ไขแล้ว) ===\n\n// 1. ดึง PSID จาก webhook input\nconst currentUserId = $('Start').first().json.body_firstItem?.entry?.[0]?.messaging?.[0]?.sender?.id || '';\n\n// หรือจาก input ปัจจุบัน\nconst psidFromInput = $json.psid || $json.senderId || '';\n\n// ใช้ PSID ที่หาเจอ\nconst userIdToCheck = currentUserId || psidFromInput;\n\n// 2. ดึงข้อมูลจาก Google Sheets \"Check user\" node\nconst allUsers = $('check user').all();\n\n// 3. ตรวจสอบว่าผู้ใช้มีอยู่ในฐานข้อมูลหรือไม่\nconst exists = allUsers.some(item => {\n  const sheetUserId = String(item.json.userid || item.json.psid || item.json.senderId || '').trim();\n  const targetUserId = String(userIdToCheck).trim();\n  \n  return sheetUserId === targetUserId;\n});\n\n// 4. ส่งผลลัพธ์\nreturn [{\n  json: {\n    psid: userIdToCheck,\n    exists: exists,\n    \n    // Debug info\n    totalUsers: allUsers.length,\n    searchedPsid: userIdToCheck,\n    foundMatch: exists\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2464,
+        384
+      ],
+      "id": "d21ca966-36bc-417d-97d2-f2b0ff87555e",
+      "name": "check exist"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "a8150222-ca43-4bef-8bad-54c056832391",
+              "leftValue": "={{ $json.exists }}",
+              "rightValue": "=false",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2240,
+        384
+      ],
+      "id": "076a2363-aacb-4642-a9ff-a9485e8d3fd7",
+      "name": "check add user",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M",
+          "mode": "list",
+          "cachedResultName": "adminpage",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "customer _check",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "psid",
+              "lookupValue": "={{ $json.psid }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1792,
+        384
+      ],
+      "id": "915584fc-d11d-4828-b6e4-a666d4665b9b",
+      "name": "Check Handoff",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ANEyPhCaKnqWBtYV",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "bafc44d4-d5be-449d-9f08-6d215ac67a50",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "Normal",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1568,
+        384
+      ],
+      "id": "8f33c407-e60c-46ad-91ef-374569772823",
+      "name": "normal or handoff",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "-1002924884874",
+        "text": "ลูกค้าที่ปิดการขายแล้วทักมา..ตรวจสอบด้วยจ้าา",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1344,
+        480
+      ],
+      "id": "d498f64c-42cb-4a7c-9275-435e1dd23cd1",
+      "name": "Messages from past customers",
+      "webhookId": "ca8fd077-4c97-4913-b176-d941d026d65e",
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.finalDecision }}",
+                    "rightValue": "=ปิดการขาย",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "285f437d-792f-41aa-81a4-8e8f42273099"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ปิดการขาย"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cfc61262-41ba-41cd-b66d-df418e81243e",
+                    "leftValue": "={{ $json.finalDecision }}",
+                    "rightValue": "sale_signal",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sale signal"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2387a162-4ebc-4f7e-84e3-24b5af7bf890",
+                    "leftValue": "={{ $json.finalDecision }}",
+                    "rightValue": "ข้อความปกติ",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ข้อความปกติ"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -224,
+        464
+      ],
+      "id": "3f117e0b-d9dd-41d2-b56e-ab723165f4d7",
+      "name": "Check the response from the message",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "-1002924884874",
+        "text": "ลูกค้ามีทีท่าสนใจ",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        384
+      ],
+      "id": "46da1265-08c0-472c-a258-95ec89cbd23a",
+      "name": "Notify users signal sale",
+      "webhookId": "ca8fd077-4c97-4913-b176-d941d026d65e",
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0410dd3a-673e-4f32-a2c7-f19ccd3e6540",
+              "name": "finalDecision",
+              "value": "=ข้อความปกติ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        768
+      ],
+      "id": "16d7b2d2-7346-4552-b3b3-f6abbcb0f303",
+      "name": "normal word"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0e9d56dd-1ed6-474b-8762-10358be9de79",
+              "name": "finalDecision",
+              "value": "=sale_signal",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        576
+      ],
+      "id": "9cf0117e-0cee-4806-bdb0-63c9710eb978",
+      "name": "signal sale"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M",
+          "mode": "list",
+          "cachedResultName": "adminpage",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1719297134,
+          "mode": "list",
+          "cachedResultName": "Keyword_Router",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M/edit#gid=1719297134"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -672,
+        480
+      ],
+      "id": "2369fb3f-27cf-40df-8945-4f190d549b05",
+      "name": "Get row(s) in sheet",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ANEyPhCaKnqWBtYV",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M",
+          "mode": "list",
+          "cachedResultName": "adminpage",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "customer _check",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2688,
+        384
+      ],
+      "id": "23474861-e7d1-4002-b3df-bfcefc9960c9",
+      "name": "check user",
+      "alwaysOutputData": false,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ANEyPhCaKnqWBtYV",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// === Code Node สำหรับ n8n ===\n// ชื่อ: check message\n// เพื่อ: แยกประเภทข้อความ Sale Signal, ปิดการขาย, ข้อความปกติ\n\n// 1. ดึงข้อมูล Keywords จาก Google Sheets (แก้ไขแล้ว - ใช้ .all())\nconst keywordData = $('Get row(s) in sheet').all();\nconst closeKeywords = keywordData.filter(item => item.json.action === 'ปิดการขาย').map(item => item.json.keyword);\nconst saleSignalKeywords = keywordData.filter(item => item.json.action === 'sale_signal').map(item => item.json.keyword);\n\n// 2. ดึงข้อมูลจาก Webhook\nconst webhookData = $('Start').first().json._firstItem;\nconst messageData = webhookData.body?.entry?.[0]?.messaging?.[0];\n\n// 3. ตัวแปร\nconst originalText = String(\n  messageData?.message?.text ?? \n  messageData?.postback?.payload ?? \n  ''\n).trim();\nconst text = originalText.toLowerCase();\n\n// 4. ดึง PSID\nconst psid = String(messageData?.sender?.id ?? '').trim();\n\n// 5. ฟังก์ชันตรวจสอบ\nfunction isPhoneNumber(text) {\n  const phonePattern = /^(?:\\+66|66|0)[0-9]{8,9}$/;\n  return phonePattern.test(text.replace(/[\\s\\-\\(\\)]/g, ''));\n}\n\nfunction hasPhoneWithContext(text) {\n  const phonePattern = /(?:\\+66|66|0)[0-9]{8,9}/;\n  const contextWords = ['เบอร์', 'โทร', 'ติดต่อ', 'โทรศัพท์', 'เบอร์โทร'];\n  return phonePattern.test(text) && contextWords.some(word => text.includes(word));\n}\n\nfunction hasNameWithContext(text) {\n  const nameIndicators = ['ชื่อผม', 'ชื่อหนู', 'ชื่อดิฉัน', 'ผมชื่อ', 'หนูชื่อ', 'ดิฉันชื่อ'];\n  return nameIndicators.some(indicator => text.includes(indicator));\n}\n\nfunction hasDetailedAddress(text) {\n  const addressWords = ['บ้านเลขที่', 'ตำบล', 'อำเภอ', 'ที่อยู่คือ', 'อยู่บ้านเลขที่', 'หมู่ที่', 'หมู่บ้าน'];\n  const hasAddressWord = addressWords.some(word => text.includes(word));\n  const hasNumbers = /\\d/.test(text);\n  return hasAddressWord && hasNumbers && text.length > 10;\n}\n\n// 6. ตรวจสอบ Keywords\nconst hasCloseKeyword = closeKeywords.some(keyword => text.includes(keyword));\nconst hasSaleSignal = saleSignalKeywords.some(keyword => text.includes(keyword));\n\n// 7. นับรูปภาพ\nconst attachments = messageData?.message?.attachments || [];\nconst imageCount = attachments.filter(att => att.type === 'image').length;\n\n// 8. Logic การตัดสินใจ (Priority Order แก้ไขแล้ว)\nlet finalDecision = 'ข้อความปกติ';\nlet decisionReason = 'default';\n\n// Priority 1: เบอร์โทรอย่างเดียว\nif (isPhoneNumber(text) && text.length <= 15) {\n  finalDecision = 'ปิดการขาย';\n  decisionReason = 'ส่งเบอร์โทรอย่างเดียว';\n}\n// Priority 2: เบอร์โทรพร้อมบริบท  \nelse if (hasPhoneWithContext(text)) {\n  finalDecision = 'ปิดการขาย';\n  decisionReason = 'ส่งเบอร์โทรพร้อมบริบท';\n}\n// Priority 3: ที่อยู่ละเอียด\nelse if (hasDetailedAddress(text)) {\n  finalDecision = 'ปิดการขาย';\n  decisionReason = 'ส่งที่อยู่ละเอียด';\n}\n// Priority 4: ชื่อพร้อมบริบท\nelse if (hasNameWithContext(text)) {\n  finalDecision = 'ปิดการขาย';\n  decisionReason = 'ส่งชื่อพร้อมบริบท';\n}\n// 🔥 Priority 5: Sale Signal ก่อน! (แก้ไขแล้ว)\nelse if (hasSaleSignal) {\n  finalDecision = 'sale_signal';\n  decisionReason = 'มี sale signal keyword';\n}\n// 🔥 Priority 6: ปิดการขาย Keywords ทีหลัง! (แก้ไขแล้ว)\nelse if (hasCloseKeyword) {\n  finalDecision = 'ปิดการขาย';\n  decisionReason = 'มี ปิดการขาย keyword';\n}\n\n// 9. สร้าง flags สำหรับ Switch Node\nconst hasContactInfo = finalDecision === 'ปิดการขาย';\nconst isSaleSignal = finalDecision === 'sale_signal';\n\n// 10. ส่งข้อมูลออก\nreturn [{\n  json: {\n    chatMsg: text,\n    originalText: originalText,\n    psid: psid,\n    hasContactInfo: hasContactInfo,\n    isSaleSignal: isSaleSignal,\n    imageCount: imageCount,\n    finalDecision: finalDecision,\n    decisionReason: decisionReason,\n    checks: {\n      isPhoneOnly: isPhoneNumber(text),\n      hasPhoneContext: hasPhoneWithContext(text),\n      hasNameContext: hasNameWithContext(text),\n      hasDetailedAddr: hasDetailedAddress(text),\n      hasCloseKw: hasCloseKeyword,\n      hasSaleKw: hasSaleSignal,\n      imageCount: imageCount\n    },\n    debug: {\n      closeKeywords: closeKeywords,\n      saleSignalKeywords: saleSignalKeywords,\n      textLength: text.length,\n      hasAttachments: attachments.length > 0,\n      totalKeywordsLoaded: keywordData.length\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        480
+      ],
+      "id": "1dc873c7-ede0-41c2-bd2a-aa8281772e31",
+      "name": "check message"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "5a78327e-b3af-4c83-8c26-413bb36c63f9",
+              "leftValue": "={{ $json.finalDecision }}",
+              "rightValue": "=Meaningless words",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -896,
+        288
+      ],
+      "id": "c8db7934-da99-4c23-86c4-e86a1998e5b7",
+      "name": "If1",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M",
+          "mode": "list",
+          "cachedResultName": "adminpage",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1508633323,
+          "mode": "list",
+          "cachedResultName": "quick_responses",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M/edit#gid=1508633323"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1344,
+        288
+      ],
+      "id": "d0e8123d-e36e-4793-8290-35b093343910",
+      "name": "Get Quick Responses",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ANEyPhCaKnqWBtYV",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9f11cd8c-786d-4bbd-8b35-1073b7829c66",
+              "name": "finalDecision",
+              "value": "Meaningless words",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2573f572-6750-4a2f-a1b8-1b56f313d02e",
+      "name": "Meaningless words"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===============================================\n// Quick Response Code Node (ปรับปรุงใหม่)\n// ===============================================\n// จุดประสงค์: กรองคำไม่มีความหมาย/คำที่ต้องเชื่อมกับคำอื่น\n// Input: \n//   - Extract Messenger Event (ข้อความลูกค้า)\n//   - Get Quick Responses (คำไม่มีความหมายจาก sheet)\n// Output: \n//   - finalDecision = \"Meaningless words\" (ถ้าเจอคำไม่มีความหมาย)\n//   - finalDecision = \"continue\" (ถ้าข้อความปกติ)\n// ===============================================\n\n// 1. ดึงข้อมูลจาก nodes\nconst quickResponses = $('Get Quick Responses').all();\nconst messengerEvent = $('Start').first().json.Extract_Messenger_Event__firstItem;\n\n// 2. ดึงข้อความจากลูกค้า\nconst messageText = String(messengerEvent.text || '').toLowerCase().trim();\n\n// 3. ตรวจสอบว่ามีข้อความหรือไม่\nif (!messageText || messageText.length === 0) {\n  return [{ \n    json: { \n      ...messengerEvent,\n      finalDecision: 'continue',\n      reason: 'ไม่มีข้อความ'\n    } \n  }];\n}\n\n// 4. สร้างรายการคำไม่มีความหมายจาก sheet\nconst meaninglessWords = quickResponses\n  .map(item => item.json.category || '')\n  .filter(word => word && word.trim().length > 0)\n  .map(word => word.toLowerCase().trim());\n\nconsole.log('📋 รายการคำไม่มีความหมาย:', meaninglessWords);\nconsole.log('💬 ข้อความที่รับมา:', messageText);\n\n// 5. ฟังก์ชันตรวจสอบคำไม่มีความหมาย\nfunction isMeaninglessMessage(text, meaninglessWords) {\n  // กรณีที่ 1: ข้อความสั้นมาก (1-3 ตัวอักษร) และตรงกับคำใน sheet\n  if (text.length <= 3) {\n    for (const word of meaninglessWords) {\n      if (text === word || text.includes(word) || word.includes(text)) {\n        return {\n          isMeaningless: true,\n          matchedWord: word,\n          reason: 'ข้อความสั้นและตรงกับคำใน sheet'\n        };\n      }\n    }\n  }\n  \n  // กรณีที่ 2: ข้อความมีคำไม่มีความหมายเป็นคำเดียว (ไม่มีคำอื่นประกอบ)\n  const words = text.split(/\\s+/).filter(w => w.length > 0);\n  \n  // ถ้ามีคำเดียว\n  if (words.length === 1) {\n    for (const meaninglessWord of meaninglessWords) {\n      if (text === meaninglessWord || text.includes(meaninglessWord)) {\n        return {\n          isMeaningless: true,\n          matchedWord: meaninglessWord,\n          reason: 'ส่งคำไม่มีความหมายเพียงคำเดียว'\n        };\n      }\n    }\n  }\n  \n  // กรณีที่ 3: ตรวจสอบคำข้างเคียง - ถ้ามีคำที่มีความหมายประกอบ ให้ผ่าน\n  const meaningfulIndicators = [\n    'ต้องการ', 'อยาก', 'ขอ', 'มี', 'ไหม', 'คือ', 'เป็น', 'ได้', 'จะ',\n    'สนใจ', 'บริการ', 'ผลิตภัณฑ์', 'สินค้า', 'ราคา', 'เท่าไร',\n    'อย่างไร', 'ทำไง', 'ช่วย', 'บอก', 'แนะนำ', 'เบอร์', 'โทร', 'ติดต่อ'\n  ];\n  \n  const hasMeaningfulContext = meaningfulIndicators.some(indicator => \n    text.includes(indicator)\n  );\n  \n  // ถ้ามี context ที่มีความหมาย ให้ผ่านไป (ไม่ถือว่าไม่มีความหมาย)\n  if (hasMeaningfulContext) {\n    return {\n      isMeaningless: false,\n      reason: 'มีคำที่มีความหมายประกอบ'\n    };\n  }\n  \n  // กรณีที่ 4: ตรวจคำไม่มีความหมายที่อยู่ในประโยค\n  for (const meaninglessWord of meaninglessWords) {\n    if (text.includes(meaninglessWord)) {\n      // ตรวจว่าเป็นคำเดี่ยวหรือไม่ (ไม่มีคำอื่นมาก)\n      const wordPattern = new RegExp(`\\\\b${meaninglessWord}\\\\b`, 'i');\n      if (wordPattern.test(text) && words.length <= 2) {\n        return {\n          isMeaningless: true,\n          matchedWord: meaninglessWord,\n          reason: 'มีคำไม่มีความหมายและไม่มี context'\n        };\n      }\n    }\n  }\n  \n  return {\n    isMeaningless: false,\n    reason: 'ข้อความปกติ'\n  };\n}\n\n// 6. ตรวจสอบข้อความ\nconst checkResult = isMeaninglessMessage(messageText, meaninglessWords);\n\nconsole.log('✅ ผลการตรวจสอบ:', checkResult);\n\n// 7. สร้าง output\nif (checkResult.isMeaningless) {\n  return [{ \n    json: { \n      ...messengerEvent,\n      finalDecision: 'Meaningless words',\n      matchedWord: checkResult.matchedWord,\n      reason: checkResult.reason,\n      messageText: messageText,\n      wordCount: messageText.split(/\\s+/).length\n    } \n  }];\n} else {\n  return [{ \n    json: {\n      ...messengerEvent,\n      finalDecision: 'continue',\n      reason: checkResult.reason,\n      messageText: messageText,\n      wordCount: messageText.split(/\\s+/).length\n    } \n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1120,
+        288
+      ],
+      "id": "daf28aa6-48ca-4b7a-862d-bd0fb96d7bea",
+      "name": "Quick response"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "21307bca-d5ee-4073-a863-e73c06ae8a05",
+              "name": "finalDecision",
+              "value": "={{ $json.finalDecision }}",
+              "type": "string"
+            },
+            {
+              "id": "9e33d8c7-7b04-496c-bd6b-3863bb1572af",
+              "name": "chatMsg",
+              "value": "={{ $('check message').item.json.chatMsg }}",
+              "type": "string"
+            },
+            {
+              "id": "f9bd952e-30ca-4590-9680-ed851d394091",
+              "name": "originalText",
+              "value": "={{ $('check message').item.json.originalText }}",
+              "type": "string"
+            },
+            {
+              "id": "2f3399c0-dbfc-440f-8c63-3bdb46b9312c",
+              "name": "psid",
+              "value": "={{ $('check message').item.json.psid }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        288
+      ],
+      "id": "63dda182-1c58-40c8-8f67-0f83cbbd5a73",
+      "name": "data"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "56cec31f-3857-4f60-9956-e7b861f6f594",
+              "name": "chatMsg",
+              "value": "={{ $('data').item.json.chatMsg }}",
+              "type": "string"
+            },
+            {
+              "id": "20f089c5-e9e4-40a8-85e8-7ce1231863fe",
+              "name": "psid",
+              "value": "={{ $('data').item.json.psid }}",
+              "type": "string"
+            },
+            {
+              "id": "a7472cdd-a060-471f-a9c5-e8160ab3da3d",
+              "name": "finalDecision",
+              "value": "={{ $json.finalDecision }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        288
+      ],
+      "id": "84c7ea93-ed06-41ff-a7b2-f6ebb630614c",
+      "name": "Return"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "body_firstItem",
+              "type": "any"
+            },
+            {
+              "name": "_firstItem",
+              "type": "any"
+            },
+            {
+              "name": "Extract_Messenger_Event__firstItem",
+              "type": "any"
+            },
+            {
+              "name": "headers",
+              "type": "any"
+            },
+            {
+              "name": "body_entry",
+              "type": "any"
+            }
+          ]
+        }
+      },
+      "id": "4e7314df-a89e-44ac-b0f9-3ffe172aa851",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -2912,
+        384
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Set Contact Response": {
+      "main": [
+        [
+          {
+            "node": "data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "add user": {
+      "main": [
+        [
+          {
+            "node": "Check Handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check exist": {
+      "main": [
+        [
+          {
+            "node": "check add user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check add user": {
+      "main": [
+        [
+          {
+            "node": "Check Handoff",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "add user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Handoff": {
+      "main": [
+        [
+          {
+            "node": "normal or handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "normal or handoff": {
+      "main": [
+        [
+          {
+            "node": "Get Quick Responses",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Messages from past customers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check the response from the message": {
+      "main": [
+        [
+          {
+            "node": "Set Contact Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify users signal sale",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "signal sale",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "normal word",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "normal word": {
+      "main": [
+        [
+          {
+            "node": "data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "signal sale": {
+      "main": [
+        [
+          {
+            "node": "data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "check message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check user": {
+      "main": [
+        [
+          {
+            "node": "check exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check message": {
+      "main": [
+        [
+          {
+            "node": "Check the response from the message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Meaningless words",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Quick Responses": {
+      "main": [
+        [
+          {
+            "node": "Quick response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meaningless words": {
+      "main": [
+        [
+          {
+            "node": "data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quick response": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "check user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "data": {
+      "main": [
+        [
+          {
+            "node": "Return",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "731b19ba-b36a-44d2-94b7-6dc1501f6754",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f60c5e248de1b49fb44a1dabf6f5785aa82a044666c84503cb84648d45cc8e0b"
+  },
+  "id": "pfjGV4IDkfGR10YP",
+  "tags": [
+    {
+      "updatedAt": "2025-11-01T19:29:16.160Z",
+      "createdAt": "2025-11-01T19:29:16.160Z",
+      "id": "jvJGlJzQMhjmgmrW",
+      "name": "admin"
+    }
+  ]
+}

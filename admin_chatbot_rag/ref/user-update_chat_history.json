@@ -1,0 +1,810 @@
+{
+  "name": "update_chat_history",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "psid",
+                "value": "={{ $json.psid }}"
+              },
+              {
+                "name": "date",
+                "value": "={{ $now }}"
+              },
+              {
+                "name": "fileName",
+                "value": "psid"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        864,
+        224
+      ],
+      "id": "eeae317d-6d88-45da-83e6-bd1856492c30",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v3.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        736,
+        224
+      ],
+      "id": "ae7e1952-3eef-4622-a704-22613ccec76a",
+      "name": "Embeddings Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "yrIZWjSYGWnVjq08",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        704,
+        64
+      ],
+      "id": "1f040167-f1b7-4737-a40f-69bcdb5e7e84",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dS99uqG3gSkYE2AZ",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M",
+          "mode": "list",
+          "cachedResultName": "adminpage",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1271080263,
+          "mode": "list",
+          "cachedResultName": " Chat_History",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M/edit#gid=1271080263"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $now }}",
+            "response-respawn": "={{ $json.output_Response }}",
+            "intent": "={{ $json.output_intent }}",
+            "message": "={{ $json.chatMsg }}",
+            "psid": "={{ $json.psid }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "psid",
+              "displayName": "psid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "response-respawn",
+              "displayName": "response-respawn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        192,
+        176
+      ],
+      "id": "7a7499f1-0d42-4e05-86aa-7caa1d437325",
+      "name": "chat_update",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ANEyPhCaKnqWBtYV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M",
+          "mode": "list",
+          "cachedResultName": "adminpage",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "customer _check",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "Handoff",
+            "psid": "={{ $json.psid }}"
+          },
+          "matchingColumns": [
+            "psid"
+          ],
+          "schema": [
+            {
+              "id": "psid",
+              "displayName": "psid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "วันที่",
+              "displayName": "วันที่",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "คำตอบล่าสุด",
+              "displayName": "คำตอบล่าสุด",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "สถานะลูกค้า",
+              "displayName": "สถานะลูกค้า",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -112,
+        336
+      ],
+      "id": "cde66738-7928-4d2d-a33d-5545687b7057",
+      "name": "change_human",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ANEyPhCaKnqWBtYV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-1002924884874",
+        "text": "ช่วยตอบแทนแอดมินที",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        176,
+        336
+      ],
+      "id": "91420857-7da8-40c2-893e-4da30e4c6373",
+      "name": "Notify users human handoff",
+      "webhookId": "ca8fd077-4c97-4913-b176-d941d026d65e",
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M",
+          "mode": "list",
+          "cachedResultName": "adminpage",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "customer _check",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qIBK-mLcjRxW4yKunqr4pFIlj42MQdAx0Op8KFR338M/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "success",
+            "psid": "={{ $json.psid }}"
+          },
+          "matchingColumns": [
+            "psid"
+          ],
+          "schema": [
+            {
+              "id": "psid",
+              "displayName": "psid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "วันที่",
+              "displayName": "วันที่",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "คำตอบล่าสุด",
+              "displayName": "คำตอบล่าสุด",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "สถานะลูกค้า",
+              "displayName": "สถานะลูกค้า",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e79b5a37-0537-4312-9a64-614aa48add1b",
+      "name": "clear sale",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ANEyPhCaKnqWBtYV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5f69e461-d115-40d3-aae7-e00b1847b2ad",
+              "name": "=id: {{ $('chat_update').item.json.psid }}",
+              "value": "=timestamp: {{ $('chat_update').item.json.timestamp }}\npsid: {{ $('chat_update').item.json.psid }}\nid message: {{ $('chat_update').item.json.message }}\nresponse-respawn: {{ $('chat_update').item.json['response-respawn'] }}\nintent: {{ $('chat_update').item.json.intent }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        544,
+        64
+      ],
+      "id": "8177a9c7-7d21-46b3-a238-1cc8ac8ffe66",
+      "name": "merge_chat_data",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "bb7c87ba-8af8-4d7b-b6e8-e9f9e2487e7f",
+              "leftValue": "={{ $json.output_intent }}",
+              "rightValue": "Unknown intention",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "396fe37d-ba35-4de0-ad3a-cd2cf77817e4",
+              "leftValue": "={{ $json.output_intent }}",
+              "rightValue": "No information",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "c176d79e-4dc6-451a-a6f4-cbdbeaf72277",
+              "leftValue": "={{ $json.output_intent }}",
+              "rightValue": "Meaningless words",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -320,
+        176
+      ],
+      "id": "3c67eec7-5f97-487d-a2d6-59b8041da68a",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json['response-respawn'] || \"\";\n\nconst cleanText = text\n  .replace(/\\|/g, '')           // ลบ |\n  .replace(/\\s+/g, ' ')         // ลดช่องว่างเหลือ 1\n  .replace(/\\\\n/g, '\\n')        // แปลง \\n เป็นขึ้นบรรทัดจริง\n  .trim();                       // ตัดช่องว่างหน้าหลัง\n\nreturn { json: { text: cleanText } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        64
+      ],
+      "id": "fa53d647-f6c9-46a9-889e-e6ceb700e89f",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "3e8d4e34-e1e5-40f6-be93-65e77bc5a371",
+              "leftValue": "={{ $json.output_intent }}",
+              "rightValue": "customer_provides_contact",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -112,
+        160
+      ],
+      "id": "57fe2f21-b602-405b-9910-6c5126ea3365",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "chatId": "-1002924884874",
+        "text": "=ลูกค้าส่งข้อมูลทำสัญญามา เชคด้วย \nchat ลูกค้า : {{ $('Start').item.json.chatMsg }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        176,
+        0
+      ],
+      "id": "70215ae9-13be-4ed8-a966-85eb24542016",
+      "name": "Close the sale",
+      "webhookId": "ca8fd077-4c97-4913-b176-d941d026d65e",
+      "credentials": {
+        "telegramApi": {
+          "id": "w6o5K9lmTIB7gumr",
+          "name": "Telegram callbacl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "output_Response",
+              "type": "any"
+            },
+            {
+              "name": "output_intent",
+              "type": "any"
+            },
+            {
+              "name": "chatMsg",
+              "type": "any"
+            },
+            {
+              "name": "psid",
+              "type": "any"
+            }
+          ]
+        }
+      },
+      "id": "137155c8-0e64-4dcd-ace4-b103d237cc0a",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -608,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "afac72a2-4295-4a53-9ad6-c41169992320",
+              "name": "psid",
+              "value": "={{ $('Start').item.json.psid }}",
+              "type": "string"
+            },
+            {
+              "id": "fc88e40f-bb0a-462c-906c-b90a23a5c5ee",
+              "name": "message",
+              "value": "={{ $('Start').item.json.chatMsg }}",
+              "type": "string"
+            },
+            {
+              "id": "67dd93b8-e781-47f9-b2e9-b31db81bf597",
+              "name": "intent",
+              "value": "={{ $('Start').item.json.output_intent }}",
+              "type": "string"
+            },
+            {
+              "id": "ea59d923-341f-45cf-8693-73bffc2cd158",
+              "name": "response-respawn",
+              "value": "={{ $('Start').item.json.output_Response }}",
+              "type": "string"
+            },
+            {
+              "id": "d2c8a8bb-9c7a-4e9a-95ba-c18da4eccaee",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1104,
+        352
+      ],
+      "id": "58196ebc-6727-437b-934c-c18f6c605c96",
+      "name": "return"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.item.json;\nconst userInfo = {user_id: item.user_id || item.userId || 'unknown', username: item.username || item.user_name || 'Unknown User'};\nconst messageContent = {text: item.message || item.text || '', role: item.role || 'user', timestamp: item.timestamp || new Date().toISOString()};\nconst context = {chat_id: item.chat_id || item.chatId, conversation_id: item.conversation_id || item.conversationId};\nconst metadata = {user_id: userInfo.user_id, username: userInfo.username, role: messageContent.role, timestamp: messageContent.timestamp, processed_at: new Date().toISOString(), chat_id: context.chat_id, conversation_id: context.conversation_id, source: item.source || 'telegram', platform: item.platform || 'telegram', language: item.language || 'th'};\nconst pageContent = '[' + messageContent.role + '] ' + userInfo.username + ': ' + messageContent.text;\nreturn {json: {pageContent: pageContent, metadata: metadata}};"
+      },
+      "id": "d79d4899-b35c-4dca-8585-70a7b2cc5b90",
+      "name": "Format_Chat_Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        -80
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "chat_update": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "return",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "change_human": {
+      "main": [
+        [
+          {
+            "node": "Notify users human handoff",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "chat_update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "clear sale": {
+      "main": [
+        [
+          {
+            "node": "Close the sale",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "chat_update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "merge_chat_data": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "change_human",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "merge_chat_data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format_Chat_Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "clear sale",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "chat_update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format_Chat_Data": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f80696b7-ce84-4bb8-b015-f3568b4d37d6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f60c5e248de1b49fb44a1dabf6f5785aa82a044666c84503cb84648d45cc8e0b"
+  },
+  "id": "ivH0Zqdu7MxRctyx",
+  "tags": [
+    {
+      "updatedAt": "2025-11-01T19:29:16.160Z",
+      "createdAt": "2025-11-01T19:29:16.160Z",
+      "id": "jvJGlJzQMhjmgmrW",
+      "name": "admin"
+    }
+  ]
+}

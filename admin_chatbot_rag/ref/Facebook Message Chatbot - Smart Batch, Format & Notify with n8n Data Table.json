@@ -1,0 +1,1036 @@
+{
+  "name": "Facebook Message Chatbot - Smart Batch, Format & Notify with n8n Data Table",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c4f1518c-2d3d-4e7e-bc61-dd8bf02a34b4",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "={{ $('Insert To Process').first().json.id }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1008,
+        -112
+      ],
+      "id": "98cdc87a-0f97-4ce2-8a05-f9fad4fbb47c",
+      "name": "Is Max ID?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v23.0/{{ $('Set Context').item.json.page_id }}/messages",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "access_token",
+              "value": "={{ $('Set Context').first().json.page_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Set Context').item.json.user_id }}\"\n  },\n  \"sender_action\": \"typing_on\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1536,
+        -256
+      ],
+      "id": "c9ef8f13-7f91-49bf-99bb-a06c540ba680",
+      "name": "Send Typing",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3f975e97-e281-4add-825e-f168f9ec6d50",
+              "leftValue": "={{ $json.body.entry[0].messaging[0].message.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -608,
+        -208
+      ],
+      "id": "66b05dc9-67f2-42dd-9535-0358801055fc",
+      "name": "Is message?",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "22aba732-f39d-473f-9336-6e9f0fdfd9ff",
+              "leftValue": "={{ $json.body.entry[0].messaging[0].message.is_echo }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "5c2fa5c6-2c3a-4988-8635-d3984d864a87",
+              "leftValue": "={{ $json.body.entry[0].messaging[0].message.is_echo }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -384,
+        -208
+      ],
+      "id": "945a574e-6013-4828-b53e-227cc1f5e72f",
+      "name": "Is from page?",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query[\"hub.challenge\"] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -608,
+        -400
+      ],
+      "id": "ba78b201-6798-4ceb-8ef3-f5446a33db47",
+      "name": "Confirm Webhook"
+    },
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "path": "nguyenthieutoan-facebook-page",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -832,
+        -304
+      ],
+      "id": "aa1438a6-b174-4f28-b49b-2d5453a804d9",
+      "name": "Facebook Webhook",
+      "webhookId": "b12c5f3e-a7d7-4f0e-bd18-7b40f7c5f0d3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v23.0/{{ $json.page_id }}/messages",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "access_token",
+              "value": "={{ $json.page_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $json.user_id }}\"\n  },\n  \"sender_action\": \"mark_seen\"\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        64,
+        -304
+      ],
+      "id": "9611d38c-5115-460e-b9cf-1183913e93bf",
+      "name": "Seen",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v23.0/{{ $('Set Context').first().json.page_id }}/messages",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "access_token",
+              "value": "={{ $('Set Context').first().json.page_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Set Context').first().json.user_id }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"text\": {{JSON.stringify($('Format for Facebook Output').item.json.text)}}\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2480,
+        -80
+      ],
+      "id": "0ac00a0d-a627-4b67-8cd7-893aa6ad5181",
+      "name": "Send Text"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n\"user_id\":\"{{ $json.body.entry[0].messaging[0].sender.id }}\",\n\"user_text\":\"{{ $json.body.entry[0].messaging[0].message.text }}\",\n\"page_id\":\"{{ $json.body.entry[0].id }}\",\n\"page_token\":\"EAAbDwxBTZAG0BPqziZAlpE79YCU2MuHfNoaSEs3oV5P1VGlaTnZC4QtyOBxeva2zadGA6a3wE4YNbxoeuHOlH9lx7ki1ybJQ9Q1JPiFFWn5M03vcz45lq6EwFuvmoZCjHEOKRllLTaMwV3qsikTxiZCwJF45hZAk3nAY2Hnx0uKPeLFqEDfKjkZCuJqCpK7PCa5LUUWuGYCJys47s1D7hpC9wZDZD\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -160,
+        -208
+      ],
+      "id": "71f74233-caf5-4ddd-b3b7-1f872338539c",
+      "name": "Set Context"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "nXPDtd1UiwqvIoh8",
+          "mode": "list",
+          "cachedResultName": "Batch_messages",
+          "cachedResultUrl": "/projects/mYtIzVb8cWfhFOhJ/datatables/nXPDtd1UiwqvIoh8"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "processed": false,
+            "user_id": "={{ $json.user_id }}",
+            "user_text": "={{ $json.user_text }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "user_text",
+              "displayName": "user_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "bot_rep",
+              "displayName": "bot_rep",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "processed",
+              "displayName": "processed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        64,
+        -112
+      ],
+      "id": "5291b6a6-0151-4282-af9f-32f637ccb61c",
+      "name": "Insert To Process"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "nXPDtd1UiwqvIoh8",
+          "mode": "list",
+          "cachedResultName": "Batch_messages",
+          "cachedResultUrl": "/projects/mYtIzVb8cWfhFOhJ/datatables/nXPDtd1UiwqvIoh8"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "keyValue": "={{ $json.user_id }}"
+            },
+            {
+              "keyName": "processed",
+              "condition": "isFalse"
+            }
+          ]
+        },
+        "limit": 10
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        512,
+        -112
+      ],
+      "id": "a1140766-f895-4713-9911-e6aead996b83",
+      "name": "Get unprocessed message"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "nXPDtd1UiwqvIoh8",
+          "mode": "list",
+          "cachedResultName": "Batch_messages",
+          "cachedResultUrl": "/projects/mYtIzVb8cWfhFOhJ/datatables/nXPDtd1UiwqvIoh8"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "keyValue": "={{ $('Set Context').first().json.user_id }}"
+            },
+            {
+              "keyValue": "={{ $('Get Max ID + Merged Mess').first().json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "bot_rep": "={{ $('Process Merged Message').first().json.output }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "user_text",
+              "displayName": "user_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "bot_rep",
+              "displayName": "bot_rep",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "processed",
+              "displayName": "processed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        2688,
+        0
+      ],
+      "id": "36bfb457-dd1f-4e40-892d-954582980ef3",
+      "name": "Update Page Rep"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "nXPDtd1UiwqvIoh8",
+          "mode": "list",
+          "cachedResultName": "Batch_messages",
+          "cachedResultUrl": "/projects/mYtIzVb8cWfhFOhJ/datatables/nXPDtd1UiwqvIoh8"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "keyValue": "={{ $('Set Context').first().json.user_id }}"
+            },
+            {
+              "keyName": "processed",
+              "condition": "isFalse"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "processed": true
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "user_text",
+              "displayName": "user_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "bot_rep",
+              "displayName": "bot_rep",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "processed",
+              "displayName": "processed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        2688,
+        -160
+      ],
+      "id": "af7ae4cc-fa6d-4825-b64a-51219ab37aa2",
+      "name": "Update FALSE to TRUE"
+    },
+    {
+      "parameters": {
+        "jsCode": "const MAX_LEN = 2000;\n\n/* === Get input === */\nlet text = ($input.first().json.output || \"\").trim();\nif (!text) return [];\n\n/* --- Fix escape JSON: đổi \\\\n, \\\\\\n thành \\n thật --- */\ntext = text.replace(/\\\\+/g, '\\\\');   // gộp nhiều \\ thành 1\ntext = text.replace(/\\\\n/g, '\\n');   // đổi thành newline thật\n\n/* ---------- 1) Markdown → Facebook Markdown ---------- */\nfunction mdToFacebook(md){\n  let s = md;\n\n  // code block → giữ nguyên\n  s = s.replace(/```([\\s\\S]*?)```/g, (m,p1)=>`\\`\\`\\n${p1.trim()}\\n\\`\\`\\``);\n\n  // inline code\n  s = s.replace(/`([^`]+)`/g, (m,p1)=>`\\`${p1}\\``);\n\n  // bold (**text**) → *text*\n  s = s.replace(/\\*\\*([^*]+)\\*\\*/g, '*$1*');\n\n  // italic (_text_) → giữ nguyên\n\n  // underline & strike → bỏ\n  s = s.replace(/__([^_]+)__/g, '$1');\n  s = s.replace(/~~([^~]+)~~/g, '$1');\n\n  // headers → bold\n  s = s.replace(/^(#{1,6})\\s+(.+)$/gm, (m, hashes, content)=>`*${content.trim()}*`);\n\n  // list markers → bullet list Messenger\n  s = s.replace(/^[\\-\\*\\+]\\s+(.+)$/gm, '* $1');\n\n  // links → giữ text\n  s = s.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, (m,txt,url)=>txt);\n\n  return s.trim();\n}\n\n/* ---------- 2) HTML → Facebook Markdown ---------- */\nfunction htmlToFbMarkdown(input){\n  let s = input;\n\n  s = s.replace(/<br\\s*\\/?>/gi, '\\n');\n\n  // headers → bold\n  s = s.replace(/<h[1-6][^>]*>([\\s\\S]*?)<\\/h[1-6]>/gi, (m, inner)=>`*${inner.trim()}*`);\n\n  // bold / italic\n  s = s.replace(/<\\/?strong[^>]*>/gi, '*');\n  s = s.replace(/<\\/?b[^>]*>/gi, '*');\n  s = s.replace(/<\\/?em[^>]*>/gi, '_');\n  s = s.replace(/<\\/?i[^>]*>/gi, '_');\n\n  // paragraphs/divs → newline\n  s = s.replace(/<\\/?(p|div)[^>]*>/gi, '\\n');\n\n  // lists → bullet\n  s = s.replace(/<li[^>]*>/gi, '* ').replace(/<\\/li>/gi, '\\n');\n  s = s.replace(/<\\/?(ul|ol)[^>]*>/gi, '');\n\n  // remove all other tags\n  s = s.replace(/<\\/?[^>]+>/g, '');\n\n  return s.trim();\n}\n\n/* ---------- 3) Normalize content ---------- */\nfunction normalizeToFacebookMarkdown(input){\n  const looksLikeMd = /(^|\\s)[*_`~]|^#{1,6}\\s|```/.test(input);\n  let s = looksLikeMd ? mdToFacebook(input) : htmlToFbMarkdown(input);\n\n  // collapse nhiều newline thành 1\n  s = s.replace(/\\n{3,}/g, '\\n\\n');\n\n  // xoá ký tự \"\\\" thừa còn sót\n  s = s.replace(/\\\\+/g, '');\n\n  return s.trim();\n}\n\n/* ---------- 4) Split by newlines (smart split) ---------- */\nfunction splitMarkdownSmart(text, maxLen) {\n  const lines = text.split('\\n');\n  const chunks = [];\n  let buffer = '';\n\n  for (const line of lines) {\n    if ((buffer + line + '\\n').length > maxLen) {\n      if (buffer.trim()) chunks.push(buffer.trim());\n      buffer = line + '\\n';\n    } else {\n      buffer += line + '\\n';\n    }\n  }\n\n  if (buffer.trim()) chunks.push(buffer.trim());\n\n  return chunks.map(c => c.replace(/\\n+$/,''));\n}\n\n/* ===== Run ===== */\nconst normalized = normalizeToFacebookMarkdown(text);\nconst chunks = splitMarkdownSmart(normalized, MAX_LEN);\n\nreturn chunks.map(c => ({ json: { text: c } }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2288,
+        -80
+      ],
+      "id": "d397a1c2-ca12-49de-8926-3467d180300c",
+      "name": "Format for Facebook Output"
+    },
+    {
+      "parameters": {
+        "content": "## 📥 Facebook Webhook & Initial Message Preprocessing\n\nThis section handles the connection and preprocessing of messages from your Facebook Page via webhook:\n\n- **Facebook Webhook:** Listens for incoming events from the Facebook Page. Make sure to configure your webhook URL in the Facebook Developer Console as:  \n  `https://yourdomain.com/webhook/nguyenthieutoan-facebook-page`\n\n- **Confirm Webhook:** Handles Facebook's verification (GET) requests, responding with the required `hub.challenge` for proper webhook setup.\n\n- **Is message?** Checks if the incoming event contains an actual user message (text exists). Filters out irrelevant events to focus only on new messages.\n\n- **Is from page?** Prevents the bot from processing messages it has sent itself (system echoes). Only processes new incoming user messages, not page's own replies.\n\n- **Set Context:** Extracts important context (user ID, message text, page ID, page token) and creates a structured JSON object. This context is used in downstream nodes for batching, formatting, and responding to users.\n\n\n**Recommendation**:  \nCarefully connect all nodes as shown for seamless Facebook integration, anti-echo logic, and robust message context extraction.\n",
+        "height": 1264,
+        "width": 848,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        -944
+      ],
+      "id": "633ae695-402b-4ce5-b303-5e7403dc7ce4",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## 🗃️ Message Batching & History Aggregation (n8n Data Table)\n\nThis section enables smart batching, merging, and history generation for incoming messages using n8n Data Table:\n\n- **Insert To Process:**  \n  Adds each incoming user message to the `Batch_messages` Data Table. The table stores fields: user_id, user_text, processed (false by default), and bot_rep (for bot response). All messages for each user are thus tracked and easily queried.\n\n- **Wait 3s:**  \n  Introduces a short delay (3 seconds) to allow any additional rapid user messages to arrive. This enables efficient batching—capturing all related messages before processing.\n\n- **Get unprocessed message:**  \n  Retrieves up to 10 messages from the same user that are not yet marked as processed. The filter focuses on `processed = false` and matches the user's ID, ensuring pending messages are grouped.\n\n- **Get Max ID + Merged Mess + History:**  \n  This node sorts the batch by ID (ascending), merges all user message texts into one unified string (`merged_message`), and generates a chat history array with both user messages and bot replies. The item with the largest (latest) message ID is enhanced with these aggregated fields and returned downstream.\n\n- **Is Max ID?**  \n  Checks if the current message is the latest (max ID) in the batch. Only this latest message, with all merged context/history, triggers further chatbot logic and response.\n\n\n**How it works:**  \nIncoming messages are queued and intelligently grouped. This workflow merges them for context-aware responses, builds a dialogue history, and ensures your chatbot replies only once per batch, preventing spam and maximizing efficiency.\n",
+        "height": 1264,
+        "width": 1184,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -944
+      ],
+      "id": "7a2d3e40-921b-4f3e-b744-6de691988fb1",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## 🧠 AI Processing & Enhanced Interaction (LLM & AI Agent Node)\n\nThis section handles the core chatbot intelligence and interactive effects:\n\n- **Send Typing:**  \n  Immediately triggers the Messenger \"typing...\" indicator via Facebook's API when a user sends a message. This effect makes the bot feel responsive and human-like, improving user experience.\n\n- **Process Merged Message (AI Agent Node):**  \n  Uses an AI Agent node (with Google Gemini/Gemini Pro) to process the batched and merged user message.  \n  - **Persona & System Prompt:** The AI operates as \"Jenix\", personal assistant for Nguyễn Thiệu Toàn, providing smart, friendly, and concise consulting responses about AI Automation services.\n  - **Conversation Flow:** Automatically delivers a friendly self-introduction in the very first message (if history is empty), then switches to ultra-efficient Q&A in later replies (using conversation history to detect context).\n  - **Strict Output Format:** Responses are always delivered in Facebook Markdown, using Vietnamese language with the correct professional yet approachable tone.\n  - **Extensibility:** Though basic LLM nodes (LMChat, httpRequest, etc.) can be used to generate answers, the AI Agent node remains here to allow easy future expansion. Example features:  \n    - Calendar checking  \n    - Automated scheduling  \n    - Advanced context-aware consulting  \n    - Custom bot actions\n  - **History-aware:** The node leverages full chat history, enabling multi-turn, contextually rich conversations.\n\n\n**Why use AI Agent here?**  \nThis approach lets workflow creators or users easily extend chatbot capability (e.g. schedule a meeting, check availability, or answer domain-specific queries) by simply adding steps to the AI Agent node—future-proof and ready for advanced features!\n\n\n**Best Practice:**  \nUse this node for the main consulting logic and response formatting. Upgrade or swap with other LLM nodes if your bot only needs single-turn answers and no extensibility.\n",
+        "height": 1264,
+        "width": 976,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1216,
+        -944
+      ],
+      "id": "7b74805b-56d7-42dd-9f86-e00fac90f0cc",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## 📤 Deliver Response & Update Batching Status (Finalize Batch)\n\nThis final group of nodes ensures the response reaches the user and all batch records are properly updated:\n\n- **Send Text:**  \n  Posts the chatbot's reply (after Facebook formatting) back to Messenger using the Facebook API. The message is taken from the AI output, ensuring correct structure and encoding for Facebook. Replies are only sent from the latest (batched) message to avoid duplicates or spam.\n\n- **Update Page Rep:**  \n  Updates the bot reply (`bot_rep`) field in the corresponding Data Table row for this user and message ID. This records exactly what was sent for full traceability and enables future context for multi-turn conversation.\n\n- **Update FALSE to TRUE:**  \n  Marks all unprocessed batched messages (`processed = false`) for this user as processed (`processed = true`) in the Data Table. This prevents the same messages from being re-batched or reprocessed in subsequent runs, closing the loop for each handled batch.\n\n**Best Practice:**  \n- This stage ensures every step is reliably logged: replies are sent, bot responses are saved in your session log, and no unprocessed messages linger in the queue.\n- By structuring the Data Table this way, your workflow supports seamless multi-turn context, easier debugging, and robust prevention of repeated responses.\n",
+        "height": 1264,
+        "width": 624,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2224,
+        -944
+      ],
+      "id": "b3c91dc3-d19b-4f7d-9677-2f34a578590e",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## 🛠️ Facebook App & Messenger Webhook Setup Guide\n\n**Step 1: Create Facebook App**\n- Go to [Facebook Developers Console](https://developers.facebook.com/).\n- Click **“Create App”**, choose **“Business”** type (recommended for Messenger).\n- Complete basic info and submit.\n\n\n**Step 2: Configure Messenger Product**\n- In your App dashboard, select **“Add Product”** and choose **“Messenger”**.\n- In **Messenger Settings**, scroll to **“Webhooks”** section.\n\n\n**Step 3: Set Up Webhook**\n- Click **“Add Callback URL”**.\n- Paste your webhook URL:  \n  `https://yourdomain.com/webhook/nguyenthieutoan-facebook-page`\n- Enter your **Verify Token** (choose any custom secure string, e.g., `jenixToken2025`).\n- Select all message event permissions.\n\n\n**Step 4: Subscribe to Page Events**\n- Scroll down and select your Facebook Page to subscribe webhook events.\n- Ensure **“messages”**, **“messaging_postbacks”**, and related permissions are checked.\n\n\n**Step 5: Add Page Access Token**\n- Generate a **Page Access Token** under your Page settings.\n- Store this token securely for use in your n8n workflow.\n\n----\n\n**Quick Tips:**\n- Make sure your webhook URL is public and HTTPS-enabled.\n- Double-check Page and App settings for correct permissions.\n- For debugging, use Facebook’s Webhook Diagnostics panel.\n",
+        "height": 736,
+        "width": 848,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        -1712
+      ],
+      "id": "ac913ab6-1fb1-4abf-bae0-9d7a7db5fbb3",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## 📑 Data Table Setup: Batch_messages\n\nTo prepare your workflow for efficient message batching and logging, open the Data tables section in the n8n UI sidebar and create a new table named `Batch_messages`.\n\nFor the column setup, you need to add these fields:\n\n- `id`: This is the auto-increment primary key for each message row.\n- `user_id`: Stores the Facebook user ID so you can identify who sent each message.\n- `user_text`: Keeps the actual content of the user's message.\n- `bot_rep`: Holds the bot's reply sent back to the user after processing.\n- `processed`: This boolean indicates whether the message has already been processed (true/false).\n- `createdAt` and `updatedAt`: These are automatically generated by n8n and show when the message was originally created and last updated.\n\nWhen creating columns, pick the appropriate data type for each field—String for text/user ID/replies, Boolean for processed status. Time fields are set up by the system.\n\nBefore you finish, always check that your field names and types are correct for reliability. Make sure `id` is set as the primary key while other fields remain flexible.\n\nWith this setup, your Data Table will allow easy management and transparent tracking of all user-bot message exchanges, perfectly supporting smart batching, status updates, and workflow troubleshooting.\n",
+        "height": 736,
+        "width": 624,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2224,
+        -1712
+      ],
+      "id": "536f5f3e-6a86-46a8-a215-edb22a977173",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "# 📝 Facebook Message Chatbot - Smart Batch, Format & Notify with n8n Data Table - Nguyen Thieu Toan\n\n**What is This Workflow?**\nThis n8n workflow is a smart chatbot solution, designed for seamless integration with Facebook Messenger. Its key strengths include message batching, context formatting for Messenger, real-time notifications (Seen & Typing), and robust conversation logging with n8n Data Table (requires n8n v1.113.0+).\n\n**How Does It Work?**\n- Connects to a Facebook Page via webhook for two-way messaging.\n- Groups and merges consecutive user messages (batching) to optimize conversation flow and prevent spam.\n- Formats both questions and replies for ideal delivery on Messenger, meeting all length and structure requirements.\n- Utilizes the Data Table feature for advanced context tracking, batching, and history management.\n- Sends Seen/Typing indicators for a human-like chat experience.\n- Supports easy expansion with AI Agent or LLM for natural language responses, scheduling, or other business automation needs.\n\n\n**Quick Setup Steps**\n- Prepare a Facebook App and Messenger webhook, linking your Page and configuring callback URLs.\n- Set up your `Batch_messages` Data Table with columns for user/bot texts, statuses, and timestamps.\n- Import the workflow or create nodes as outlined in the full tutorial.\n- Plug in your API tokens and webhook URLs.\n- Start your n8n workflow on a public server.\n\n\n**Detailed instructions and troubleshooting:**  \nSee the complete guide at:  \n[https://nguyenthieutoan.com/share-n8n-workflow-facebook-messenger-smart-chatbot-use-message-batching-table-data](https://nguyenthieutoan.com/share-n8n-workflow-facebook-messenger-smart-chatbot-use-message-batching-table-data)\n\n\n**Extra Tips:**  \n- Customize the AI prompt and persona for your business domain.\n- Add logic for scheduling, calendar integration, lead collection, or any feature using n8n’s flexible node system.\n- Regularly monitor Data Table logs for clean batching and message flow.\n\n\n**About Author Nguyen Thieu Toan?**\nNguyen Thieu Toan (Nguyễn Thiệu Toàn/Jay Nguyen) is an expert in AI automation, business optimization, and chatbot development. With a background as a Marketing Manager and deep knowledge of n8n workflows, he helps businesses leverage AI-powered automation to boost performance, save time, and deliver smarter customer experiences.\n",
+        "height": 736,
+        "width": 2192,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -1712
+      ],
+      "id": "452fdb7f-16d2-4a8a-be73-07764edff67a",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lấy danh sách input\nconst inputItems = items;\n\n// Nếu danh sách rỗng, trả về rỗng\nif (inputItems.length === 0) {\n  return [];\n}\n\n// Sắp xếp theo id tăng dần\nconst sortedItems = [...inputItems].sort((a, b) => a.json.id - b.json.id);\n\n// Tạo merged_message từ các user_text không null\nconst mergedMessage = sortedItems\n  .map(item => item.json.user_text)\n  .filter(text => text !== null && text !== undefined)\n  .join(' ');\n\n// Tìm item có id lớn nhất\nlet maxItem = sortedItems[sortedItems.length - 1];\n\n// Thêm các trường vào item lớn nhất\nmaxItem.json.merged_message = mergedMessage;\n// Trả về item có id lớn nhất kèm merged_message và history\nreturn [maxItem];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        -112
+      ],
+      "id": "a921c1dc-41b2-4c38-9e84-c6f08539c1e7",
+      "name": "Get Max ID + Merged Mess"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        160
+      ],
+      "id": "afd17a05-bc0d-4161-ac97-35f777092ec1",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "QHq86L5qdaq8kmJh",
+          "name": "Gemini jaynguyena01@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Get Max ID + Merged Mess').first().json.merged_message }}",
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "=# Persona\nYou are Jenix, the personal AI assistant for Nguyễn Thiệu Toàn. Your primary role is to act as a specialized consultant, advising potential clients on the AI and Automation services he provides.\n\n# Core Directives\n1.  *Consult on Services:* Your main goal is to understand the customer's needs and advise them on how Nguyễn Thiệu Toàn's services can help. The core services include:\n    a. *Automation Solutions for Businesses:* Providing custom automation workflows using platforms like n8n and other AI-powered tools.\n    b. *AI & Automation Training:* Offering training programs for individuals and companies on leveraging AI and automation.\n2.  *Facilitate Scheduling:* If a potential client expresses strong interest or has complex questions that require direct expertise, proactively offer to schedule a consultation with Nguyễn Thiệu Toàn.\n\n# Conversational Flow\n1.  *Opening Message:* In the very first message of a new conversation (when chat history is empty), you MUST introduce yourself. The introduction should be similar to this: \"Chào anh/chị, em là Jenix, trợ lý AI của anh Nguyễn Thiệu Toàn. Em có thể giúp anh/chị giải đáp các thắc mắc về dịch vụ và giải pháp Tự động hóa & AI ạ.\"\n2.  *Follow-up Messages:* In all subsequent messages within the same conversation, you must skip any introduction and get straight to the point, directly answering the user's query.\n\n# Constraints & Rules\n1.  *Extreme Brevity:* Your responses (after the opening message) must be concise and directly address the user's core question. Eliminate all filler words.\n2.  *Language and Addressing (Vietnamese):* You must adhere strictly to the following conversational protocol:\n    -   Address the customer as \"anh\" or \"chị\".\n    -   Refer to yourself as \"em\".\n\n# Tone of Voice\n-   *Clever & Witty:* Employ a smart and slightly humorous tone.\n-   *Friendly & Approachable:* Maintain a warm, welcoming, and helpful demeanor.\n-   *Efficient:* Your style should convey competence and respect for the customer's time.\n\n# Output Format\n-   Your entire output must be formatted in *Facebook Markdown*.\n\n# Context\n## Date and time: {{ $now }}\n## Chat History:\n### Old session chat history: {{ $json.old_session_history }}\n### Now session chat history: {{ $json.now_session_history }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1904,
+        -64
+      ],
+      "id": "2949eb67-e386-47ea-a987-cc80aee98cb7",
+      "name": "Process Merged Message",
+      "retryOnFail": true,
+      "waitBetweenTries": 100
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "nXPDtd1UiwqvIoh8",
+          "mode": "list",
+          "cachedResultName": "Jenix_Page_Chat_history",
+          "cachedResultUrl": "/projects/mYtIzVb8cWfhFOhJ/datatables/nXPDtd1UiwqvIoh8"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "keyValue": "={{ $('Set Context').item.json.user_id }}"
+            },
+            {
+              "keyName": "processed",
+              "condition": "isTrue"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        -64
+      ],
+      "id": "22e7bdbd-52de-4859-97d0-966fbf361d46",
+      "name": "Get history message",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputItems = items;\n\nif (inputItems.length === 0) {\n  return [];\n}\n\n// Sort messages by creation time (ascending)\nconst sortedItems = [...inputItems].sort((a, b) => new Date(a.json.createdAt) - new Date(b.json.createdAt));\n\n// Format helper for YYYY-MM-DD HH:mm:ss in Vietnam timezone\nfunction formatVNDateTime(date) {\n  return date.toLocaleString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });\n}\n\n// Helper to get date string only (YYYY-MM-DD)\nfunction getVNDate(date) {\n  return new Date(date).toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });\n}\n\nlet sessions = [];\nlet currentSession = [];\nlet lastDate = null;\n\nsortedItems.forEach(item => {\n  const createdAt = new Date(item.json.createdAt);\n  const currentDate = getVNDate(createdAt);\n\n  if (lastDate && currentDate !== lastDate) {\n    // Push previous session\n    sessions.push(currentSession);\n    currentSession = [];\n  }\n\n  currentSession.push(item);\n  lastDate = currentDate;\n});\n\n// Push the final session\nif (currentSession.length > 0) {\n  sessions.push(currentSession);\n}\n\n// Get today's date in Vietnam timezone\nconst todayVN = getVNDate(new Date());\n\n// Split sessions into old and current\nlet oldSessionHistory = '';\nlet nowSessionHistory = '';\n\nsessions.forEach(session => {\n  const sessionDate = getVNDate(session[0].json.createdAt);\n  let sessionBlock = `--- 🕒 Session started at ${formatVNDateTime(new Date(session[0].json.createdAt))} ---\\n`;\n\n  session.forEach(item => {\n    const userText = item.json.user_text;\n    const botRep = item.json.bot_rep;\n    const createdAtFormatted = formatVNDateTime(new Date(item.json.createdAt));\n    const updatedAtFormatted = formatVNDateTime(new Date(item.json.updatedAt));\n\n    if (userText) {\n      sessionBlock += `User [${createdAtFormatted}]: ${userText}\\n`;\n    }\n    if (botRep) {\n      sessionBlock += `Assistant [${updatedAtFormatted}]: ${botRep}\\n`;\n    }\n  });\n\n  sessionBlock = sessionBlock.trim() + '\\n';\n\n  if (sessionDate === todayVN) {\n    nowSessionHistory += sessionBlock;\n  } else {\n    oldSessionHistory += sessionBlock;\n  }\n});\n\n// Final output\nreturn [\n  {\n    json: {\n      old_session_history: oldSessionHistory.trim(),\n      now_session_history: nowSessionHistory.trim()\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1712,
+        -64
+      ],
+      "id": "ea44a0d9-0e5e-4f45-be4f-22fa5c30301c",
+      "name": "Merge History"
+    },
+    {
+      "parameters": {
+        "model": "groq/compound",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1952,
+        176
+      ],
+      "id": "34113efa-bdde-4086-b907-732a1da31990",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "n97HjLNwPywpbFTr",
+          "name": "Groq jayracroi@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputItems = items;\n\n// Nếu danh sách rỗng, trả về rỗng\nif (inputItems.length === 0) {\n  return [];\n}\n\n// Sắp xếp theo thời gian tạo mới nhất\nconst sortedItems = [...inputItems].sort((a, b) => new Date(b.json.createdAt) - new Date(a.json.createdAt));\n\n// Lấy 15 hàng mới nhất\nconst latestItems = sortedItems.slice(0, 15);\n\n// Sắp xếp lại theo thời gian tăng dần để giữ đúng thứ tự hội thoại\nconst finalSorted = [...latestItems].sort((a, b) => new Date(a.json.createdAt) - new Date(b.json.createdAt));\n\n// Trả về kết quả\nreturn finalSorted;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        -64
+      ],
+      "id": "f270db75-aea2-434c-a4d9-f6098301f70b",
+      "name": "Get 15 newest rows"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        288,
+        -112
+      ],
+      "id": "fa878cbb-e5e2-43ed-8daf-be71b0555282",
+      "name": "Wait 5s",
+      "webhookId": "bec8714e-5c19-4ff8-9644-f8ba6e8ecdfd"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Is Max ID?": {
+      "main": [
+        [
+          {
+            "node": "Send Typing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get history message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is message?": {
+      "main": [
+        [
+          {
+            "node": "Is from page?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is from page?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Set Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facebook Webhook": {
+      "main": [
+        [
+          {
+            "node": "Confirm Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is message?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Confirm Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Typing": {
+      "main": [
+        []
+      ]
+    },
+    "Send Text": {
+      "main": [
+        [
+          {
+            "node": "Update Page Rep",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update FALSE to TRUE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Context": {
+      "main": [
+        [
+          {
+            "node": "Insert To Process",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Seen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert To Process": {
+      "main": [
+        [
+          {
+            "node": "Wait 5s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get unprocessed message": {
+      "main": [
+        [
+          {
+            "node": "Get Max ID + Merged Mess",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Page Rep": {
+      "main": [
+        []
+      ]
+    },
+    "Format for Facebook Output": {
+      "main": [
+        [
+          {
+            "node": "Send Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Max ID + Merged Mess": {
+      "main": [
+        [
+          {
+            "node": "Is Max ID?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Process Merged Message",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get history message": {
+      "main": [
+        [
+          {
+            "node": "Get 15 newest rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge History": {
+      "main": [
+        [
+          {
+            "node": "Process Merged Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Process Merged Message",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get 15 newest rows": {
+      "main": [
+        [
+          {
+            "node": "Merge History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Merged Message": {
+      "main": [
+        [
+          {
+            "node": "Format for Facebook Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5s": {
+      "main": [
+        [
+          {
+            "node": "Get unprocessed message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4a08e9a6-c0c9-40dc-89a7-19e3f3676930",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "735886904af210643f438394a538e64374f0cb4ab13fd94d97005987482d652a"
+  },
+  "id": "L5w4jvOmCZ3FgTCZ",
+  "tags": []
+}

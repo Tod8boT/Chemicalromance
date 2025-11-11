@@ -1,0 +1,1460 @@
+{
+  "name": "admin_chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "path": "n8n-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1760,
+        208
+      ],
+      "id": "dc424392-0144-4fb1-a50d-6c947904628a",
+      "name": "Webhook",
+      "webhookId": "abf6d7b4-6abe-4b12-8693-f4b7e023451a"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "383973d2-885a-4948-a3f5-9383aa549c2a",
+              "leftValue": "={{ $json.query['hub.mode'] }}",
+              "rightValue": "subscribe",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "6860104b-4842-4cb3-91b4-7ff489099689",
+              "leftValue": "={{ $json.query['hub.verify_token'] }}",
+              "rightValue": "n8n-webhook",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1536,
+        112
+      ],
+      "id": "ad85d43f-b1b0-4518-b7ec-d0a4c705ff99",
+      "name": "Verify Webhook Token"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "231fbd1a-bced-488a-90ed-3a452d8e0875",
+              "leftValue": "={{ $json.proceed === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1264,
+        336
+      ],
+      "id": "790ea73b-1109-4cbf-9c48-5dfd4a52a593",
+      "name": "Check User Message"
+    },
+    {
+      "parameters": {
+        "jsCode": "const e = $json.body?.entry?.[0]?.messaging?.[0] || {};\n\n// 1) ข้ามข้อความที่เพจตัวเองส่ง (echo)\nif (e.message?.is_echo) {\n  return { json: { proceed: false, reason: 'is_echo' } };\n}\n\n// 2) ข้าม event ประเภท delivery/read (ไม่ใช่ข้อความ)\nif (e.delivery || e.read) {\n  return { json: { proceed: false, reason: 'delivery_or_read' } };\n}\n\n// 3) รับเฉพาะข้อความจากผู้ใช้จริง (text) หรือ postback (กดปุ่ม)\nconst text = e.message?.text || e.postback?.payload || null;\nif (!text) {\n  return { json: { proceed: false, reason: 'no_text' } };\n}\n\n// 4) กันกรณี page id ส่งมาชนเอง (สำรอง)\nconst PAGE_ID = '107201445711168'; // ตัวเลขเพจ\nif (e.sender?.id === PAGE_ID) {\n  return { json: { proceed: false, reason: 'from_page_itself' } };\n}\n\nreturn {\n  json: {\n    proceed: true,\n    psid: e.sender?.id,\n    text\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1472,
+        336
+      ],
+      "id": "33a08b99-7f9d-4b9d-b05d-6d21c49b1178",
+      "name": "Extract Messenger Event",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -1312,
+        96
+      ],
+      "id": "3938f3b5-bf43-4e16-ba59-b4da16127de1",
+      "name": "Respond Verification Token",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [
+        544,
+        1152
+      ],
+      "id": "73492dee-c427-43fd-a358-22fcb576ce30",
+      "name": "Reranker Cohere3",
+      "credentials": {
+        "cohereApi": {
+          "id": "yrIZWjSYGWnVjq08",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v3.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        400,
+        1152
+      ],
+      "id": "7603a35f-0d7a-4bb6-b847-d289df1e10b3",
+      "name": "Embeddings Cohere3",
+      "credentials": {
+        "cohereApi": {
+          "id": "yrIZWjSYGWnVjq08",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [
+        64,
+        1152
+      ],
+      "id": "ccc7d426-7cf8-4496-b8c9-8de7000ff74f",
+      "name": "Reranker Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "yrIZWjSYGWnVjq08",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v3.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        1136
+      ],
+      "id": "bdbac56f-3f7c-4098-83a4-931ceeae0906",
+      "name": "Embeddings Cohere4",
+      "credentials": {
+        "cohereApi": {
+          "id": "yrIZWjSYGWnVjq08",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v3.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        1152
+      ],
+      "id": "c3c8b226-5db0-46b7-b4ce-69644976b33a",
+      "name": "Embeddings Cohere1",
+      "credentials": {
+        "cohereApi": {
+          "id": "yrIZWjSYGWnVjq08",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "topN": 5
+      },
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        1152
+      ],
+      "id": "2d3d1366-634e-4771-85e1-b3707fa850d1",
+      "name": "Reranker Cohere1",
+      "credentials": {
+        "cohereApi": {
+          "id": "yrIZWjSYGWnVjq08",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "google/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        320,
+        960
+      ],
+      "id": "5bb34e22-f2d8-41a3-87d2-9234d797014c",
+      "name": "OpenRouter Chat Model6",
+      "credentials": {
+        "openRouterApi": {
+          "id": "tRFwGpdl8GV30fOZ",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "ใช้เพื่อหาข้อมูลที่เกี่ยวข้องหรือปิดการขาย",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "useReranker": true,
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "fileName",
+                "value": "business_data"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        496,
+        944
+      ],
+      "id": "ae7e1d26-ad78-4682-a306-4bd688d1bfbd",
+      "name": "business_data_base",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dS99uqG3gSkYE2AZ",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v24.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"text\": \"{{ $('Call check_text').item.json['response-respawn'] }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        784,
+        304
+      ],
+      "id": "6baba4fc-13cc-4127-9d1b-cfaa7e047cc4",
+      "name": "Send Text Reply",
+      "executeOnce": false,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "x50Ax7LoKFG46jHC",
+          "name": "Cremo Facebook Messenger"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "toolDescription": "ใช้เครื่องมือนี้เพื่อ ค้นหาวิธีการตอบคำถามทั่วไป, แนวทางรับมือลูกค้า ห้ามใช้เครื่องมือนี้ค้นหาประวัติการคุย",
+        "text": "=USER INPUT: {{ $fromAI('Prompt__User_Message_', ``, 'string') }}",
+        "options": {
+          "systemMessage": "# คุณคือผู้ช่วยค้นหา หน้าที่ของคุณคือการเรียกใช้ `qa_scenarios_base` tool ทันทีเพื่อดึงข้อมูลที่เกี่ยวข้องกับคำถามของผู้ใช้ โดยให้ส่งข้อมูลที่เกี่ยวข้องที่สุด กลับไป\n\nกฎเข้มงวด:\n1. ต้องแสดงผลเฉพาะข้อความตัวเลือกที่มีใน qa_scenarios_base เท่านั้น\n2. ห้ามเพิ่มคำอธิบาย เหตุผล หรือข้อความใดๆ เพิ่มเติม\n3. ห้ามใช้ความรู้หรือการตีความของคุณเอง\n4. ถ้าไม่มีตัวเลือกที่ตรงกัน ให้ส่งข้อมูล fallback_message ทุกรูปแบบกลับไปให้เลือกใช้\n5. คำตอบต้องเป็นข้อความตัวเลือกตามที่ระบุในแผ่นงานเท่านั้น\n6. ส่งรูปภาพไปด้วยเมื่อต้องการทำให้ลูกค้าเห็นภาพมากขึ้นหรือลุกค้าขอภาพต่างๆ\n อ้างอิงจาก reply: (ขึ้นต้นด้วย https://res.cloudinary.com/dz3cmaxnc/image/upload) ประเภทของรูปอ้างอิิงจาก category\n\nรูปแบบผลลัพธ์:\n-\n1.choice\n category: (ข้อมูลที่เกี่ยวข้อง)\n  customer_question: (ข้อมูลที่เกี่ยวข้อง)\n  reply: (ข้อมูลที่เกี่ยวข้อง)\n\n2.choice\n category: (ข้อมูลที่เกี่ยวข้อง)\n  customer_question: (ข้อมูลที่เกี่ยวข้อง)\n  reply: (ข้อมูลที่เกี่ยวข้อง)\n\n3.choice\n category: (ข้อมูลจริง)\n  customer_question: (ข้อมูลจริง)\n  reply: (ข้อมูลจริง)\n\n- ข้อมูลที่เกี่ยวข้องกับคำถาม"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 2.2,
+      "position": [
+        64,
+        720
+      ],
+      "id": "8638ffc3-5a6c-484c-bf54-6b24fad7c886",
+      "name": "search_QA_scenarios"
+    },
+    {
+      "parameters": {
+        "toolDescription": "ใช้เครื่องมือนี้เพื่อค้นหาข้อมูลธุรกิจ, สินค้า, ราคา, โปรโมชั่น, สเปคตู้แช่, กฎหรือเงื่อนไขสำคัญ ห้ามใช้เครื่องมือนี้ค้นหาประวัติการคุย",
+        "text": "=USER INPUT: {{ $fromAI('Prompt__User_Message_', ``, 'string') }}\nTypes of conversation: {{ $json.finalDecision }}",
+        "options": {
+          "systemMessage": "# คุณคือผู้ช่วยค้นหา หน้าที่ของคุณคือการเรียกใช้ `business_data_base` tool ทันที เพื่อดึงข้อมูลที่เกี่ยวข้องกับคำถามของผู้ใช้ โดยให้ส่งข้อมูลที่เกี่ยวข้องที่สุด \n\nกฎเข้มงวด:\n1. ต้องแสดงผลเฉพาะข้อความตัวเลือกที่มีใน business_data_base เท่านั้น\n2. ห้ามเพิ่มคำอธิบาย เหตุผล หรือข้อความใดๆ เพิ่มเติม\n3. ห้ามใช้ความรู้หรือการตีความของคุณเอง\n4. ถ้าไม่มีตัวเลือกที่ตรงกัน ให้แสดง: \"NO_MATCH\"\n5. ให้ส่ง ข้อมูล Types of conversation ให้ถูกต้องตามประเภทข้อความที่ได้รับ\n6. คำตอบต้องเป็นข้อความตัวเลือกตามที่ระบุในแผ่นงานเท่านั้น\n\nรูปแบบผลลัพธ์:\n-\nTypes of conversation: (ข้อมูลที่เกี่ยวข้อง)\n variable: (ข้อมูลที่เกี่ยวข้อง)\n description: (ข้อมูลที่เกี่ยวข้อง)\n\n1.choice\n variable: (ข้อมูลที่เกี่ยวข้อง)\n description: (ข้อมูลที่เกี่ยวข้อง)\n\n2.choice\n variable: (ข้อมูลที่เกี่ยวข้อง)\n description: (ข้อมูลที่เกี่ยวข้อง)\n\n3.choice\n variable: (ข้อมูลที่เกี่ยวข้อง)\n description: (ข้อมูลที่เกี่ยวข้อง)\n\n - ข้อมูลที่เกี่ยวข้องกับคำถาม"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 2.2,
+      "position": [
+        432,
+        720
+      ],
+      "id": "540542ec-16bc-4ab0-813f-d14fb39dfdb7",
+      "name": "search_business_data"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "8ca9d1a6-09fe-43d4-8d3b-76fa426bc08a",
+              "leftValue": "={{ $json['response-respawn'] }}",
+              "rightValue": "https://res.cloudinary.com/dz3cmaxnc/image/upload",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        576,
+        176
+      ],
+      "id": "5f546c9f-86e7-4481-8ed1-56295e2c5b2d",
+      "name": "Check Image Output"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ดึงข้อความจาก node chat_update\nconst text = $('Call check_text').item.json['response-respawn'] || \"\";\n\n// regex ตรวจจับลิงก์ภาพจากหลายโดเมน\n// รองรับ .jpg, .jpeg, .png, .gif, .webp และ cdn เช่น shopify, cloudinary, imagekit, sirv, etc.\nconst imageRegex = /(https?:\\/\\/[^\\s]+?\\.(?:png|jpe?g|gif|webp)(?:\\?[^\\s]*)?)/gi;\n\n// หา URL ทั้งหมดในข้อความ\nconst urls = [];\nlet match;\nwhile ((match = imageRegex.exec(text)) !== null) {\n  urls.push(match[1]);\n}\n\n// ตัด URL ออกจากข้อความต้นฉบับ (เพื่อให้เหลือเฉพาะ text)\nlet cleanText = text;\nurls.forEach((u) => {\n  cleanText = cleanText.replace(u, '').trim();\n});\n\n// สร้าง media_elements สำหรับใช้ใน Messenger Media Template\nconst media_elements = urls.slice(0, 10).map((u) => ({\n  media_type: \"image\",\n  url: u,\n}));\n\nreturn {\n  json: {\n    text: cleanText,\n    image_urls: urls,\n    media_elements,\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        112
+      ],
+      "id": "eab1e902-26c6-46f9-9bfd-4b4fef263bda",
+      "name": "Extract Image URL"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Always perform a RAG first:\n1) Use the \"Tools\" to search for the data entered by the user below.\n2) Use the top results of search_qa_scenarios and search_business_data (e.g., top_k=3) as your primary context.\n3) If there is insufficient context (similarity below a certain threshold), ask a short question to clarify in Thai, then use the search tool again.\n4) Refine the dataset obtained to fit the overall picture from the conversation history, but do not fabricate facts beyond the scope of the \"Tools\" data.\n\n\nith what is certain.\nUSER ID: {{ $json.psid }}\nUSER INPUT: {{ $json.chatMsg }}\nTypes of conversation: {{ $json.finalDecision }}\n\n\nวิธีใช้ \"เครื่องมือ\"(Tools)\nUSER ID: ส่งให้ \"search_chat_history\" เพื่อดึงบทสนทนาก่อนหน้า\nUSER INPUT: ส่งให้ \"search_qa_scenarios\" เพื่อดึงข้อมูลแนวทางการตอบ และดึงข้อมูลรูปภาพ หากไม่ได้รับให้ทำซ้ำจนกว่าจะได้รูปภาพที่เกี่ยวข้อง\nTypes of conversation,USER INPUT: ส่งให้ \"search_business_data\" เพื่อหาข้อมูลเกี่ยวกับประเภทบทสนนทนาและ ข้อมูลที่ต้องใช้เพื่อสร้างคำตอบ\n\n\nOUTPUT LANGUAGE: Thai only.\noutput_formatting:\n  - ตอบกลับข้อมูล 2 ส่วน\n    \"Response\": \"(คำตอบหลังจากได้รับข้อมูล)\",\n\t\"intent\": \"(ประเมินเจตนา ข้อความที่ได้รับ)\"\n  intent หลังจากย้อนดูประวัติสนทนาให้ระบุความสนใจลูกค้าเพื่อแบ่งประเภทลูกค้า ห้ามคิดหัวข้อ intent ขึ้นมาใหม่เด็ดขาด\n  - Inquiry = สอบถามข้อมูล\n  - Looks interested = ดูเหมือนสนใจ\n  - Looks hesitant= กำลังลังเล\n  - Considering = กำลังพิจารณาจากข้อมูลต่างๆ\n  - Not interested = ไม่สนใจ\n  - Unknown intention = ไม่สามารถเข้าใจคำถาม\n  - No information = ข้อมูลที่ได้รับไม่สามารถตอบได้เพราะไม่มีข้อมูลที่ตรง\n  - customer_provides_contact = ลูกค้าให้ข้อมูลสำหรับปิดการขาย\n\n\n  - สรุปเป็น bullet หรือ ตาราง เมื่อเหมาะสม\n  - ห้ามใช้ \"\\n\" หรือขึ้นบรรทัดใหม่\n  - ใช้ \"•\" หรือ \" | \" เพื่อคั่นหัวข้อ\n  - ห้ามใช้ Markdown\n  - ส่งข้อความในรูปแบบ plain text เท่านั้น\n  - ขอให้ตอบสั้น ๆ แต่สุภาพ เหมาะกับ facebook messenger",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=### 1. บทบาท (Persona)\nคุณคือ \"น้องโม\" (ใช้คำแทนตัวเองว่า \"หนู\" และเรียกผู้ใช้ว่า \"พี่\")\nคุณเป็นแอดมินที่ฉลาดและเป็นกันเองของเพจ \"ไอศกรีมครีโม Cremo Ice Cream\"\n\n### 2.goal\nเชิญชวนให้เจ้าของร้าน ร้านชำ ร้านอาหาร คาเฟ่ โรงเรียน หรือผู้ที่มีพื้นที่ว่าง มาวางตู้แช่ไอศกรีม CREMO\n\n### 3. ตรรกะการใช้เครื่องมือ (RAG Logic)\n1.  **ต้องใช้เครื่องมือก่อนเสมอ:** เมื่อได้รับคำถามจากผู้ใช้ ให้คุณวิเคราะห์คำถามและเลือกใช้เครื่องมือ (Tools) ที่เกี่ยวข้องที่สุดเพื่อดึงข้อมูล (Context) ออกมา\n2.  **เครื่องมือ (Tools) ของคุณคือ:**\n    * `search_chat_history`: ใช้เมื่อลูกค้าอ้างอิงถึงบทสนทนาก่อนหน้า\n    * `search_business_data`: ใช้เพื่อข้อมูลธุรกิจ, สินค้า, ราคา, โปรโมชั่น, สเปคตู้แช่, กฎหรือเงื่อนไขสำคัญ\n    * `search_QA_scenarios`: ใช้เพื่อดึงข้อมูลคำถามที่พบบ่อย (FAQ), วิธีการตอบคำถามทั่วไป, แนวทางรับมือลูกค้า\n3.  **สังเคราะห์คำตอบ:** ให้นำข้อมูล (Context) ที่ดึงมาจากเครื่องมือ มาสังเคราะห์เป็นคำตอบที่สมบูรณ์ สามารถปรับปรุงให้เข้ากับข้อมูลประวัติการแชทได้แต่ย่าสร้างข้อเท็จจริงเกินขอบเขตของข้อมูลที่ได้จาก \"Tools\"\n4.  **ห้ามคิดเอง:** ถ้าเครื่องมือไม่พบข้อมูลที่เกี่ยวข้อง ห้ามตอบเองเด็ดขาด ให้ใช้ \"คำตอบ Fallback\" ในข้อ 5 ทันที\n\n### 4. กฎการสร้างเนื้อหา (Content Rules)\n1.  **บุคลิก (Speaking Style):** ตอบด้วยภาษาไทยที่สุภาพ เป็นกันเอง กระชับ (ไม่เกิน 2-3 ประโยค) ตามสไตล์ของ \"น้องโม\"\n2.  **โปรโมชั่น (Dynamic Content):** ถ้าข้อมูลที่ดึงมามี Placeholder `[ดึงข้อมูลโปรโมชั่นปัจจุบัน]` ให้คุณค้นหาข้อมูล \"โปรโมชั่นปัจจุบัน\" (ที่มาจากเครื่องมือ `ข้อมูลสินค้าและบริการ`) แล้วนำมา \"เติมในช่องว่าง\" ให้เป็นประโยคที่สมบูรณ์\n3.  **รูปภาพ (Image Handling):** ถ้าข้อมูลที่ดึงมามี `image_url` (ที่เป็นลิงก์ .jpg หรือ .png) ให้คุณนำ `image_url` นั้น มาต่อท้ายคำตอบของคุณด้วยแท็กพิเศษ: `[IMAGE_URL:ลิงก์รูปภาพ]` (Workflow ของคุณจะใช้แท็กนี้ในการส่งรูปภาพแยก) และให้ส่งไปข้อความละ 1 รูปเท่านั้นโดยให้เลือกรูปที่เกี่ยวข้องกับคำถามมากที่สุด\n4.  **หากมีประวัติการสนทนา จาก \"search_chat_history\" อนุญาติให้ตัดตรงส่วนแนะนำตัวออกไป\nเช่น สวัสดีค่ะพี่ (ข้อมูลเพิ่มเติม)\nเป็น(ข้อมูลเพิ่มเติม)\nหรือการแนะนำตัวต่างๆ เพื่อเปิดบทสนนทนาออกไป ถ้าซ้ำกับบทสนทนาเดิม เพื่อให้บทสนนทนาลื่นไหลไม่เหมือนการตอบด้วย ai\n5.  ถ้า Types of conversation:sale_signal ให้ใช้ tools เพื่อขอข้อมูลเกี่ยวกับการปิดการขายเพิ่มเติม\n\n### 5. กฎ fallback_behavior:\n  **Fallback (ไม่พบข้อมูล):** หากเครื่องมือไม่พบข้อมูลที่เกี่ยวข้อง หรือคุณไม่มั่นใจ ให้ตอบกลับด้วย Fallback Message เท่านั้น เช่น : \"อันนี้ไม่แน่ใจ พี่มีเบอร์ไหมคะ หนูให้เซลติดต่อกลับได้ไหม สะดวกไหมคะ\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -128,
+        352
+      ],
+      "id": "4061b127-28ee-401f-8439-8ccdc7d386d8",
+      "name": "AI Agent",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.finalDecision }}",
+                    "rightValue": "ปิดการขาย",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "63616568-26ea-4113-9058-a20ff4b14b54"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ปิดการขาย"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8fe545f2-b870-4780-a40a-32135c6efb83",
+                    "leftValue": "={{ $json.finalDecision }}",
+                    "rightValue": "Meaningless words",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Meaningless words"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c63659d0-2803-47af-8dce-f55067b5a424",
+                    "leftValue": "={{ $json.finalDecision }}",
+                    "rightValue": "ข้อความปกติ",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ข้อความปกติ"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cfad5790-bcad-48d9-aeff-2854d2784b13",
+                    "leftValue": "={{ $json.finalDecision }}",
+                    "rightValue": "sale_signal",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sale_signal"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -640,
+        272
+      ],
+      "id": "d38417c0-aae5-425a-9c14-cafa3eb60da7",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d58ae69a-d22f-4a5a-aa11-7ae37e8bb7be",
+              "name": " intent",
+              "value": "Meaningless words",
+              "type": "string"
+            },
+            {
+              "id": "22fa4300-3c9d-44bd-b9e1-899e4980d3d6",
+              "name": "response",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        176
+      ],
+      "id": "9ff8db99-cd7a-4d57-95c9-66af85fa43c1",
+      "name": "set answer",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "toolDescription": "ใช้เครื่องมือนี้เพื่อ ค้นหาประวัติการสนทนา เพื่อดึงประวัติการสนทนา",
+        "text": "=USER INPUT:{{ $fromAI('Prompt__User_Message_', ``, 'string') }}\nUSER ID: {{ $json.psid }}",
+        "options": {
+          "systemMessage": "# คุณคือผู้ช่วยค้นหาข้อมมูล หน้าที่ของคุณคือการเรียกใช้ `chat_history_base` tool ทันทีพื่อดึงประวัติข้อมูลบทสนนทนา\n\nกฎเข้มงวด:\n1. คุุณมีหน้าส่งข้อมูลที่มีประวัติสนทนาเท่านั้น โดยเรียงลำดับตามเวลาที่ระบุใน ttimestamp 4 ข้อความหลังสุด หรือเกี่ยวข้องมากที่สุด 4 ข้อความ\n2. ห้ามเพิ่มคำอธิบาย เหตุผล หรือข้อความใดๆ เพิ่มเติม\n3. ห้ามใช้ความรู้หรือการตีความของคุณเอง\n4. ถ้าไม่มีตัวเลือกที่ตรงกัน ให้ส่งข้อมูล \"ลูกค้าใหม่\" กลับไป\n\nรูปแบบผลลัพธ์:\n\ntimestamp: (ข้อมูลจริง)\npsid: (ข้อมูลจริง)\nid message: (ข้อมูลจริง)\nresponse-respawn: (ข้อมูลจริง)\nintent: (ข้อมูลจริง)\n\nเรียงลำดับก่อน-หลัง หรือที่เกี่ยวข้องกับคำถาม"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 2.2,
+      "position": [
+        -304,
+        720
+      ],
+      "id": "f30b396e-dd39-4db7-8432-823839cee389",
+      "name": "search_chat_history"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "ใช้เพื่อหาวิธีการตอบกลับในแบบต่างๆหรือปิดการขาย",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "useReranker": true,
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "fileName",
+                "value": "=qa_scenarios"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        16,
+        944
+      ],
+      "id": "9f77264b-9a9f-49e9-abba-b28f6801a01c",
+      "name": "qa_scenarios_base",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dS99uqG3gSkYE2AZ",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use it to search the chat history of the desired user. Use the provided ID to search.",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "useReranker": true,
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "=fileName",
+                "value": "=psid"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        -368,
+        944
+      ],
+      "id": "335051a6-fefc-47d0-b775-48658e64491c",
+      "name": "chat_history_base",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dS99uqG3gSkYE2AZ",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        560
+      ],
+      "id": "458ac999-61c7-49d8-a6e5-c577775cb78a",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "tRFwGpdl8GV30fOZ",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        208,
+        560
+      ],
+      "id": "351032f7-3d15-4d98-aa32-fd9cbc0011b2",
+      "name": "Calculator"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"Response\": \"ให้หนุช่วยอะไรดีคะ\",\n\t\"intent\": \"สอบถามข้อมูล\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        560,
+        576
+      ],
+      "id": "37583a04-a07b-43a8-b172-651ea4e9f778",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "389ba65d-6b6a-4180-a7e0-51f24b32948d",
+              "name": "response",
+              "value": "=ขอบคุณค่ะ เดี๋ยวโมให้ทีมงานรีบติดต่อกลับนะคะพี่",
+              "type": "string"
+            },
+            {
+              "id": "66632663-d2e3-467c-96e7-888cdf5286a6",
+              "name": " intent",
+              "value": "Close the sale",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "fbc54894-bb63-47de-adeb-11dc6be5a689",
+      "name": "close sale",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "7fhhjaaOM7aDRbIP",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/7fhhjaaOM7aDRbIP",
+          "cachedResultName": "check_customer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "body_firstItem": "={{ $('Webhook').first().json.body }}",
+            "_firstItem": "={{ $('Webhook').first().json }}",
+            "Extract_Messenger_Event__firstItem": "={{ $('Extract Messenger Event').first().json }}",
+            "headers": "={{ $('Webhook').item.json.headers }}",
+            "body_entry": "={{ $('Webhook').item.json.body.entry }}"
+          },
+          "matchingColumns": [
+            "body_firstItem",
+            "_firstItem",
+            "Extract_Messenger_Event__firstItem",
+            "headers",
+            "body_entry"
+          ],
+          "schema": [
+            {
+              "id": "body_firstItem",
+              "displayName": "body_firstItem",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "_firstItem",
+              "displayName": "_firstItem",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Extract_Messenger_Event__firstItem",
+              "displayName": "Extract_Messenger_Event__firstItem",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "headers",
+              "displayName": "headers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "body_entry",
+              "displayName": "body_entry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -1040,
+        320
+      ],
+      "name": "Call check",
+      "id": "9bff94af-db56-4e17-8d60-fe7f4db52a42",
+      "executeOnce": true,
+      "notesInFlow": false,
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "eb71b7c1-4882-4e9c-8b8c-2d99a10b9cc1",
+              "leftValue": "={{ $json.chatMsg }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -880,
+        320
+      ],
+      "id": "cec10554-0eb2-4035-af3e-b2306f9e8a25",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "059ffa16-3328-41e7-9fcf-7f9daa897127",
+              "name": "response",
+              "value": "={{ $json.output.Response }}",
+              "type": "string"
+            },
+            {
+              "id": "149996e2-5269-445d-8dfb-4750f97239da",
+              "name": " intent",
+              "value": "={{ $json.output.intent }}",
+              "type": "string"
+            },
+            {
+              "id": "05fec245-87b7-4a70-aa6f-5f7005e0607b",
+              "name": "psid",
+              "value": "={{ $('Call check').item.json.psid }}",
+              "type": "string"
+            },
+            {
+              "id": "65604c7c-87de-4aff-8b54-70c8538e5b93",
+              "name": "chatMsg",
+              "value": "={{ $('Call check').item.json.chatMsg }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        176
+      ],
+      "id": "f36f20d2-32b5-42cd-9562-749e0a79f6ac",
+      "name": "merge",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "nYSXSQ08VNAk1upN",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/nYSXSQ08VNAk1upN",
+          "cachedResultName": "update_chat_history"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "output_Response": "={{ $json.response }}",
+            "output_intent": "={{ $json[' intent'] }}",
+            "chatMsg": "={{ $json.chatMsg }}",
+            "psid": "={{ $json.psid }}"
+          },
+          "matchingColumns": [
+            "output_Response",
+            "output_intent",
+            "chatMsg",
+            "psid"
+          ],
+          "schema": [
+            {
+              "id": "output_Response",
+              "displayName": "output_Response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "output_intent",
+              "displayName": "output_intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "chatMsg",
+              "displayName": "chatMsg",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "psid",
+              "displayName": "psid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        384,
+        176
+      ],
+      "name": "Call check_text",
+      "id": "c5572ca0-1f4f-4e81-a9a0-b394a3013d33",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v24.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"text\": \"{{ $('Extract Image URL').item.json.text }}\"\n  }\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1136,
+        112
+      ],
+      "id": "e4ee3845-8b5e-4996-b692-a27fe7769f51",
+      "name": "Send Text Reply1",
+      "executeOnce": false,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "x50Ax7LoKFG46jHC",
+          "name": "Cremo Facebook Messenger"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v24.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\"\n  },\n  \"message\": {\n    \"attachment\": {\n      \"type\": \"template\",\n      \"payload\": {\n        \"template_type\": \"generic\",\n        \"elements\": [\n          {\n            \"image_url\": \"{{ $json.image_urls[0] }}\",\n            \"subtitle\": \"{{ $json.media_elements[0].media_type }}\"\n          }\n        ]\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        112
+      ],
+      "id": "4b459a9b-89da-4cc7-b5c8-a3e8b4eddf9a",
+      "name": "Send Image Reply",
+      "executeOnce": false,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "x50Ax7LoKFG46jHC",
+          "name": "Cremo Facebook Messenger"
+        }
+      },
+      "continueOnFail": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Webhook Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Messenger Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Webhook Token": {
+      "main": [
+        [
+          {
+            "node": "Respond Verification Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Messenger Event": {
+      "main": [
+        [
+          {
+            "node": "Check User Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check User Message": {
+      "main": [
+        [
+          {
+            "node": "Call check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere3": {
+      "ai_reranker": [
+        [
+          {
+            "node": "business_data_base",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere3": {
+      "ai_embedding": [
+        [
+          {
+            "node": "business_data_base",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere": {
+      "ai_reranker": [
+        [
+          {
+            "node": "qa_scenarios_base",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere4": {
+      "ai_embedding": [
+        [
+          {
+            "node": "qa_scenarios_base",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "chat_history_base",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere1": {
+      "ai_reranker": [
+        [
+          {
+            "node": "chat_history_base",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "search_business_data",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "search_QA_scenarios",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "search_chat_history",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "business_data_base": {
+      "ai_tool": [
+        [
+          {
+            "node": "search_business_data",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_QA_scenarios": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_business_data": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Image Output": {
+      "main": [
+        [
+          {
+            "node": "Extract Image URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Text Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Image URL": {
+      "main": [
+        [
+          {
+            "node": "Send Image Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "close sale",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "set answer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set answer": {
+      "main": [
+        [
+          {
+            "node": "merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_chat_history": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "qa_scenarios_base": {
+      "ai_tool": [
+        [
+          {
+            "node": "search_QA_scenarios",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "chat_history_base": {
+      "ai_tool": [
+        [
+          {
+            "node": "search_chat_history",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "close sale": {
+      "main": [
+        [
+          {
+            "node": "merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call check": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "merge": {
+      "main": [
+        [
+          {
+            "node": "Call check_text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call check_text": {
+      "main": [
+        [
+          {
+            "node": "Check Image Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Image Reply": {
+      "main": [
+        [
+          {
+            "node": "Send Text Reply1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6e7202cc-3297-4562-a13b-de90cf3b3978",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f60c5e248de1b49fb44a1dabf6f5785aa82a044666c84503cb84648d45cc8e0b"
+  },
+  "id": "d2eLn9JqPAFVEewg",
+  "tags": [
+    {
+      "updatedAt": "2025-11-01T19:29:16.160Z",
+      "createdAt": "2025-11-01T19:29:16.160Z",
+      "id": "jvJGlJzQMhjmgmrW",
+      "name": "admin"
+    }
+  ]
+}
