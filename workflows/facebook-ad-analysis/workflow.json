@@ -1,0 +1,458 @@
+{
+  "name": "Facebook Ad Analysis & A/B Testing",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Competitor_Data",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "read-competitor",
+      "name": "Read Competitor Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        460,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "CREMO_Templates",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "read-templates",
+      "name": "Read Templates",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        460,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Market_Intelligence",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "read-intel",
+      "name": "Read Market Intel",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        460,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "competitor_data",
+              "name": "competitor_data",
+              "value": "={{ $json }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-competitor",
+      "name": "Set Competitor",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        680,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "templates",
+              "name": "templates",
+              "value": "={{ $json }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-templates",
+      "name": "Set Templates",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        680,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "market_intel",
+              "name": "market_intel",
+              "value": "={{ $json }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-intel",
+      "name": "Set Intel",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        680,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "merge-data",
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        900,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o",
+          "cachedResultName": "GPT-4O"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=You are a Facebook Ads strategist for CREMO ice cream franchise. Analyze competitor data and provide A/B testing recommendations.\n\nOutput must be valid JSON:\n{\n  \"analysis\": {\n    \"performance_gap\": \"brief description\",\n    \"key_insights\": [\"insight1\", \"insight2\"],\n    \"opportunities\": [\"opp1\", \"opp2\"]\n  },\n  \"recommendations\": {\n    \"template_matches\": [{\"template\": \"name\", \"reason\": \"why\"}],\n    \"regional_focus\": \"region\",\n    \"tone_style\": \"style\"\n  },\n  \"ab_tests\": [\n    {\n      \"test_id\": \"A1\",\n      \"variation\": \"description\",\n      \"template\": \"template name\",\n      \"image_prompt\": \"prompt text\",\n      \"ad_copy\": \"copy text\",\n      \"cta\": \"CTA\",\n      \"expected_impact\": \"impact\"\n    }\n  ]\n}"
+            },
+            {
+              "role": "user",
+              "content": "=Analyze this data:\n\nCompetitor: {{ JSON.stringify($json.competitor_data) }}\nTemplates: {{ JSON.stringify($json.templates) }}\nIntelligence: {{ JSON.stringify($json.market_intel) }}\n\nProvide 3 A/B test recommendations."
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "id": "ai-analysis",
+      "name": "AI Analysis",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1120,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI response\nconst aiResponse = $json.message?.content || $json;\nlet parsed;\n\ntry {\n  parsed = typeof aiResponse === 'string' ? JSON.parse(aiResponse) : aiResponse;\n} catch (e) {\n  parsed = {\n    analysis: { performance_gap: \"Error parsing response\", key_insights: [], opportunities: [] },\n    recommendations: { template_matches: [], regional_focus: \"unknown\", tone_style: \"unknown\" },\n    ab_tests: []\n  };\n}\n\nreturn {\n  json: {\n    timestamp: new Date().toISOString(),\n    analysis: parsed.analysis,\n    recommendations: parsed.recommendations,\n    ab_tests: parsed.ab_tests || []\n  }\n};"
+      },
+      "id": "parse-response",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Analysis_Results",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $json.timestamp }}",
+            "performance_gap": "={{ $json.analysis.performance_gap }}",
+            "key_insights": "={{ JSON.stringify($json.analysis.key_insights) }}",
+            "opportunities": "={{ JSON.stringify($json.analysis.opportunities) }}",
+            "regional_focus": "={{ $json.recommendations.regional_focus }}",
+            "ab_test_count": "={{ $json.ab_tests.length }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "save-summary",
+      "name": "Save Analysis",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1560,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "fieldsToSplitOut": "ab_tests",
+        "options": {}
+      },
+      "id": "split-tests",
+      "name": "Split Tests",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "AB_Test_Queue",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $('Parse AI Response').item.json.timestamp }}",
+            "test_id": "={{ $json.test_id }}",
+            "template": "={{ $json.template }}",
+            "variation": "={{ $json.variation }}",
+            "image_prompt": "={{ $json.image_prompt }}",
+            "ad_copy": "={{ $json.ad_copy }}",
+            "cta": "={{ $json.cta }}",
+            "expected_impact": "={{ $json.expected_impact }}",
+            "status": "=pending"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "save-tests",
+      "name": "Save Tests",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1780,
+        580
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Read Competitor Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Templates",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Market Intel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Competitor Data": {
+      "main": [
+        [
+          {
+            "node": "Set Competitor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Templates": {
+      "main": [
+        [
+          {
+            "node": "Set Templates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Market Intel": {
+      "main": [
+        [
+          {
+            "node": "Set Intel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Competitor": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Templates": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Set Intel": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge Data": {
+      "main": [
+        [
+          {
+            "node": "AI Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Analysis": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Save Analysis",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split Tests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Tests": {
+      "main": [
+        [
+          {
+            "node": "Save Tests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "new",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "cremo-analysis"
+  },
+  "id": "new",
+  "tags": []
+}

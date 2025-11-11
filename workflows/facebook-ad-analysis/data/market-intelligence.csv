@@ -1,0 +1,13 @@
+﻿Analysis_ID,Data_Type,Key_Insights,Source,Status,Summary
+MI-003-Text-Hook-Analysis,Trends Analysis,"• Hook แบบคำถาม + ปัญหา เริ่มต้นได้ผลดี
+• ตัวเลขเงินทุนต้องใส่เสมอ (credibility)
+• คำว่า 'ฟรี' 'ไม่มีค่าเช่า' สร้าง FOMO สูง
+• CTA แบบ 'เริ่มได้เลย' ดีกว่า 'ติดต่อเราวันนี้'",Manual Research,Reviewed,"วิเคราะห์ text hooks ที่มีประสิทธิภาพในตลาดไอศกรีม/franchise พบ pattern ที่ชัดเจน: Pain Point + Solution + Urgency ได้ผลดีที่สุด เช่น 'เบื่อรายได้น้อย? ลงทุนตู้แช่ CREMO เพียง 2,500 บาท เริ่มได้เลย!'"
+MI-002-Regional-Preferences,Performance Metrics,"• ภาคใต้: Lifestyle + Golden Hour lighting = +45% engagement
+• ภาคอีสาน: Success Stories + Documentary style = +38% CTR
+• ภาคกลาง: Product Demo + Studio lighting = +52% conversion
+• ภาคเหนือ: Community Moments + Natural lighting = +41% shares",Social Media,New,การวิเคราะห์ engagement ตามภูมิภาค พบว่าภาคใต้ชอบ lifestyle photography ส่วนภาคอีสานชอบ success stories มากกว่า ภาคกลางมี CTR สูงสุดในโฆษณาแบบ product demonstration
+MI-001-Competitor-Visual-Trends,Competitor Ads,"• ภาพชุมชน/ครอบครัวได้ผลดีที่สุด
+• สีเหลือง-ส้มสร้าง engagement สูง
+• Text overlay แบบ 'เริ่มต้นเพียง XX บาท' ใช้บ่อยมาก
+• Shot แบบ Wide shot ได้ผลดีกว่า Close-up 60%",Apify,New,การวิเคราะห์ 80 โฆษณาของคู่แข่งในตลาดไอศกรีม พบว่า 65% ใช้รูปแบบ Community Moments แสดงผู้คนที่มีความสุข 40% ใช้สี warm tones (เหลือง/ส้ม) และ 72% มี text overlay ที่เน้นข้อความเร่งด่วน
